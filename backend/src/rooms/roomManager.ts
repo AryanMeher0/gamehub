@@ -2,7 +2,9 @@ const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const CODE_LENGTH = 6;
 
 interface Room {
+  roomCode: string;
   createdAt: number;
+  players: string[];
 }
 
 const rooms: Record<string, Room> = {};
@@ -17,10 +19,17 @@ function generateRoomCode(): string {
   return code;
 }
 
-function createRoom(): string {
+function createRoom(creatorSocketId: string): string {
   const roomCode = generateRoomCode();
-  rooms[roomCode] = { createdAt: Date.now() };
+  rooms[roomCode] = { roomCode, createdAt: Date.now(), players: [creatorSocketId] };
   return roomCode;
 }
 
-export { createRoom, rooms };
+function joinRoom(roomCode: string, socketId: string): { success: boolean; message?: string } {
+  const room = rooms[roomCode];
+  if (!room) return { success: false, message: "Room not found" };
+  room.players.push(socketId);
+  return { success: true };
+}
+
+export { createRoom, joinRoom, rooms };

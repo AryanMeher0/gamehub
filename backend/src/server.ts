@@ -3,7 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import healthRouter from "./routes/health";
-import { createRoom } from "./rooms/roomManager";
+import { createRoom, joinRoom } from "./rooms/roomManager";
 
 const app = express();
 const httpServer = createServer(app);
@@ -29,9 +29,21 @@ io.on("connection", (socket) => {
   socket.emit("server:welcome", { message: "Connected to GameHub server" });
 
   socket.on("client:create-room", () => {
-    const roomCode = createRoom();
+    const roomCode = createRoom(socket.id);
     console.log(`Room Created: ${roomCode}`);
+    socket.join(roomCode);
     socket.emit("server:room-created", { roomCode });
+  });
+
+  socket.on("client:join-room", ({ roomCode }: { roomCode: string }) => {
+    const result = joinRoom(roomCode, socket.id);
+    if (!result.success) {
+      socket.emit("server:join-failed", { message: result.message });
+      return;
+    }
+    socket.join(roomCode);
+    console.log(`Player joined room: ${roomCode}`);
+    socket.emit("server:join-success", { roomCode });
   });
 
   socket.on("disconnect", () => {
