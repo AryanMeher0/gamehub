@@ -3,6 +3,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import healthRouter from "./routes/health";
+import { createRoom } from "./rooms/roomManager";
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,6 +27,12 @@ io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
   socket.emit("server:welcome", { message: "Connected to GameHub server" });
+
+  socket.on("client:create-room", () => {
+    const roomCode = createRoom();
+    console.log(`Room Created: ${roomCode}`);
+    socket.emit("server:room-created", { roomCode });
+  });
 
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
