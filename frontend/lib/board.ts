@@ -1,0 +1,71 @@
+import { BoardSpace } from "@/types/game";
+
+export const BOARD: BoardSpace[] = [
+  { index: 0,  name: "GO",                    type: "go" },
+  { index: 1,  name: "Mediterranean",         type: "property", color: "brown",     price: 60 },
+  { index: 2,  name: "Comm. Chest",           type: "community" },
+  { index: 3,  name: "Baltic Ave",            type: "property", color: "brown",     price: 60 },
+  { index: 4,  name: "Income Tax",            type: "tax",      tax: 200 },
+  { index: 5,  name: "Reading RR",            type: "railroad", price: 200 },
+  { index: 6,  name: "Oriental Ave",          type: "property", color: "lightblue", price: 100 },
+  { index: 7,  name: "Chance",                type: "chance" },
+  { index: 8,  name: "Vermont Ave",           type: "property", color: "lightblue", price: 100 },
+  { index: 9,  name: "Connecticut",           type: "property", color: "lightblue", price: 120 },
+  { index: 10, name: "Jail",                  type: "visiting" },
+  { index: 11, name: "St. Charles",           type: "property", color: "pink",      price: 140 },
+  { index: 12, name: "Electric Co.",          type: "utility",  price: 150 },
+  { index: 13, name: "States Ave",            type: "property", color: "pink",      price: 140 },
+  { index: 14, name: "Virginia Ave",          type: "property", color: "pink",      price: 160 },
+  { index: 15, name: "Penn. Railroad",        type: "railroad", price: 200 },
+  { index: 16, name: "St. James",             type: "property", color: "orange",    price: 180 },
+  { index: 17, name: "Comm. Chest",           type: "community" },
+  { index: 18, name: "Tennessee",             type: "property", color: "orange",    price: 180 },
+  { index: 19, name: "New York Ave",          type: "property", color: "orange",    price: 200 },
+  { index: 20, name: "Free Parking",          type: "free_parking" },
+  { index: 21, name: "Kentucky Ave",          type: "property", color: "red",       price: 220 },
+  { index: 22, name: "Chance",                type: "chance" },
+  { index: 23, name: "Indiana Ave",           type: "property", color: "red",       price: 220 },
+  { index: 24, name: "Illinois Ave",          type: "property", color: "red",       price: 240 },
+  { index: 25, name: "B&O Railroad",          type: "railroad", price: 200 },
+  { index: 26, name: "Atlantic Ave",          type: "property", color: "yellow",    price: 260 },
+  { index: 27, name: "Ventnor Ave",           type: "property", color: "yellow",    price: 260 },
+  { index: 28, name: "Water Works",           type: "utility",  price: 150 },
+  { index: 29, name: "Marvin Gardens",        type: "property", color: "yellow",    price: 280 },
+  { index: 30, name: "Go To Jail",            type: "go_to_jail" },
+  { index: 31, name: "Pacific Ave",           type: "property", color: "green",     price: 300 },
+  { index: 32, name: "N. Carolina",           type: "property", color: "green",     price: 300 },
+  { index: 33, name: "Comm. Chest",           type: "community" },
+  { index: 34, name: "Penn. Ave",             type: "property", color: "green",     price: 320 },
+  { index: 35, name: "Short Line RR",         type: "railroad", price: 200 },
+  { index: 36, name: "Chance",                type: "chance" },
+  { index: 37, name: "Park Place",            type: "property", color: "darkblue",  price: 350 },
+  { index: 38, name: "Luxury Tax",            type: "tax",      tax: 100 },
+  { index: 39, name: "Boardwalk",             type: "property", color: "darkblue",  price: 400 },
+];
+
+export const PROPERTY_COLORS: Record<string, string> = {
+  brown:     "#92400e",
+  lightblue: "#7dd3fc",
+  pink:      "#f472b6",
+  orange:    "#fb923c",
+  red:       "#ef4444",
+  yellow:    "#facc15",
+  green:     "#22c55e",
+  darkblue:  "#1d4ed8",
+};
+
+export function getSpaceBg(type: string): string {
+  const map: Record<string, string> = {
+    go:           "bg-green-900",
+    community:    "bg-yellow-900",
+    chance:       "bg-orange-900",
+    tax:          "bg-gray-700",
+    railroad:     "bg-gray-800",
+    utility:      "bg-gray-800",
+    visiting:     "bg-yellow-950",
+    free_parking: "bg-green-950",
+    go_to_jail:   "bg-red-950",
+    property:     "bg-gray-900",
+  };
+  return map[type] ?? "bg-gray-900";
+}

@@ -64,4 +64,8 @@ function getRoomByPlayer(socketId: string): Room | null {
   return Object.values(rooms).find((r) => r.players[socketId]) ?? null;
 }
 
-export { createRoom, joinRoom, leaveRoom, setReady, getRoom, getRoomByPlayer };
+function getRoomCodeByPlayer(socketId: string): string | null {
+  return Object.values(rooms).find((r) => r.players[socketId])?.roomCode ?? null;
+}
+
+export { createRoom, joinRoom, leaveRoom, setReady, getRoom, getRoomByPlayer, getRoomCodeByPlayer };
