@@ -17,7 +17,18 @@ export interface BoardSpace {
   type: SpaceType;
   color?: string;
   price?: number;
+  rent?: number;
   tax?: number;
+}
+
+export interface PropertyOwnership {
+  spaceIndex: number;
+  ownerId: string;
+  price: number;
+  rent: number;
+  name: string;
+  color?: string;
+  type: SpaceType;
 }
 
 export interface GamePlayer {
@@ -42,7 +53,8 @@ export interface GameState {
   players: Record<string, GamePlayer>;
   turnOrder: string[];
   currentTurnIndex: number;
-  phase: "waiting" | "rolling" | "ended";
+  phase: "waiting" | "rolling" | "buying" | "ended";
   lastRoll: DiceRoll | null;
+  properties: Record<number, PropertyOwnership>;
   log: string[];
 }

@@ -14,6 +14,8 @@ import {
 import {
   createGame,
   processRoll,
+  buyProperty,
+  skipProperty,
   endTurn,
   handlePlayerDisconnect,
   getGame,
@@ -99,6 +101,20 @@ io.on("connection", (socket) => {
   // GAME: ROLL DICE
   socket.on("game:roll", ({ roomCode }: { roomCode: string }) => {
     const { state, error } = processRoll(roomCode, socket.id);
+    if (error) { socket.emit("game:error", { message: error }); return; }
+    io.to(roomCode).emit("game:stateUpdated", state);
+  });
+
+  // GAME: BUY PROPERTY
+  socket.on("game:buyProperty", ({ roomCode }: { roomCode: string }) => {
+    const { state, error } = buyProperty(roomCode, socket.id);
+    if (error) { socket.emit("game:error", { message: error }); return; }
+    io.to(roomCode).emit("game:stateUpdated", state);
+  });
+
+  // GAME: SKIP PROPERTY
+  socket.on("game:skipProperty", ({ roomCode }: { roomCode: string }) => {
+    const { state, error } = skipProperty(roomCode, socket.id);
     if (error) { socket.emit("game:error", { message: error }); return; }
     io.to(roomCode).emit("game:stateUpdated", state);
   });

@@ -7,6 +7,7 @@ import { GameState } from "@/types/game";
 import Board from "@/components/game/Board";
 import PlayerPanel from "@/components/game/PlayerPanel";
 import GameLog from "@/components/game/GameLog";
+import PropertyModal from "@/components/game/PropertyModal";
 
 export default function GamePage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -35,7 +36,6 @@ export default function GamePage() {
     socket.on("game:stateUpdated", onStateUpdated);
     socket.on("game:error", onError);
 
-    // Request current state in case we navigated here after startGame was emitted
     socket.emit("game:getState", { roomCode });
 
     return () => {
@@ -45,13 +45,10 @@ export default function GamePage() {
     };
   }, [roomCode]);
 
-  function handleRoll() {
-    getSocket().emit("game:roll", { roomCode });
-  }
-
-  function handleEndTurn() {
-    getSocket().emit("game:endTurn", { roomCode });
-  }
+  function handleRoll()    { getSocket().emit("game:roll",         { roomCode }); }
+  function handleEndTurn() { getSocket().emit("game:endTurn",      { roomCode }); }
+  function handleBuy()     { getSocket().emit("game:buyProperty",  { roomCode }); }
+  function handleSkip()    { getSocket().emit("game:skipProperty", { roomCode }); }
 
   function handleLeave() {
     getSocket().emit("leaveRoom", { roomCode });
@@ -89,12 +86,10 @@ export default function GamePage() {
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-4 p-4 lg:flex-row lg:items-start">
-        {/* Board — square, takes as much space as possible */}
         <div className="w-full lg:flex-1">
-          <Board players={state.players} />
+          <Board players={state.players} properties={state.properties} />
         </div>
 
-        {/* Sidebar */}
         <div className="flex w-full flex-col gap-4 lg:w-72 lg:shrink-0">
           <PlayerPanel
             state={state}
@@ -105,6 +100,16 @@ export default function GamePage() {
           <GameLog log={state.log} />
         </div>
       </div>
+
+      {/* Property purchase modal — shown to all players when phase is buying */}
+      {state.phase === "buying" && (
+        <PropertyModal
+          state={state}
+          socketId={socketId}
+          onBuy={handleBuy}
+          onSkip={handleSkip}
+        />
+      )}
     </main>
   );
 }
