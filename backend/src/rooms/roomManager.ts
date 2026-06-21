@@ -1,11 +1,7 @@
+import { Room, Player } from "../types";
+
 const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const CODE_LENGTH = 6;
-
-interface Room {
-  roomCode: string;
-  createdAt: number;
-  players: string[];
-}
 
 const rooms: Record<string, Room> = {};
 
@@ -19,17 +15,53 @@ function generateRoomCode(): string {
   return code;
 }
 
-function createRoom(creatorSocketId: string): string {
+function createRoom(socketId: string): Room {
   const roomCode = generateRoomCode();
-  rooms[roomCode] = { roomCode, createdAt: Date.now(), players: [creatorSocketId] };
-  return roomCode;
+  const player: Player = { id: socketId, ready: false };
+  rooms[roomCode] = {
+    roomCode,
+    host: socketId,
+    players: { [socketId]: player },
+    createdAt: Date.now(),
+  };
+  return rooms[roomCode];
 }
 
-function joinRoom(roomCode: string, socketId: string): { success: boolean; message?: string } {
+function joinRoom(roomCode: string, socketId: string): { success: boolean; room?: Room; message?: string } {
   const room = rooms[roomCode];
   if (!room) return { success: false, message: "Room not found" };
-  room.players.push(socketId);
-  return { success: true };
+  if (room.players[socketId]) return { success: true, room };
+  room.players[socketId] = { id: socketId, ready: false };
+  return { success: true, room };
 }
 
-export { createRoom, joinRoom, rooms };
+function leaveRoom(roomCode: string, socketId: string): Room | null {
+  const room = rooms[roomCode];
+  if (!room) return null;
+  delete room.players[socketId];
+  if (Object.keys(room.players).length === 0) {
+    delete rooms[roomCode];
+    return null;
+  }
+  if (room.host === socketId) {
+    room.host = Object.keys(room.players)[0];
+  }
+  return room;
+}
+
+function setReady(roomCode: string, socketId: string, ready: boolean): Room | null {
+  const room = rooms[roomCode];
+  if (!room || !room.players[socketId]) return null;
+  room.players[socketId].ready = ready;
+  return room;
+}
+
+function getRoom(roomCode: string): Room | null {
+  return rooms[roomCode] ?? null;
+}
+
+function getRoomByPlayer(socketId: string): Room | null {
+  return Object.values(rooms).find((r) => r.players[socketId]) ?? null;
+}
+
+export { createRoom, joinRoom, leaveRoom, setReady, getRoom, getRoomByPlayer };

@@ -3,7 +3,13 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import healthRouter from "./routes/health";
-import { createRoom, joinRoom } from "./rooms/roomManager";
+import {
+  createRoom,
+  joinRoom,
+  leaveRoom,
+  setReady,
+  getRoomByPlayer,
+} from "./rooms/roomManager";
 
 const app = express();
 const httpServer = createServer(app);
@@ -26,28 +32,62 @@ app.use("/api", healthRouter);
 io.on("connection", (socket) => {
   console.log(`Client connected: ${socket.id}`);
 
-  socket.emit("server:welcome", { message: "Connected to GameHub server" });
-
-  socket.on("client:create-room", () => {
-    const roomCode = createRoom(socket.id);
-    console.log(`Room Created: ${roomCode}`);
-    socket.join(roomCode);
-    socket.emit("server:room-created", { roomCode });
+  // CREATE ROOM
+  socket.on("createRoom", () => {
+    const room = createRoom(socket.id);
+    socket.join(room.roomCode);
+    console.log(`Room created: ${room.roomCode} by ${socket.id}`);
+    socket.emit("roomUpdated", room);
   });
 
-  socket.on("client:join-room", ({ roomCode }: { roomCode: string }) => {
-    const result = joinRoom(roomCode, socket.id);
-    if (!result.success) {
-      socket.emit("server:join-failed", { message: result.message });
+  // JOIN ROOM
+  socket.on("joinRoom", ({ roomCode }: { roomCode: string }) => {
+    const result = joinRoom(roomCode.toUpperCase(), socket.id);
+    if (!result.success || !result.room) {
+      socket.emit("joinError", { message: result.message ?? "Failed to join room" });
       return;
     }
-    socket.join(roomCode);
-    console.log(`Player joined room: ${roomCode}`);
-    socket.emit("server:join-success", { roomCode });
+    socket.join(roomCode.toUpperCase());
+    console.log(`Player ${socket.id} joined room: ${roomCode}`);
+    io.to(roomCode.toUpperCase()).emit("roomUpdated", result.room);
   });
 
+  // LEAVE ROOM
+  socket.on("leaveRoom", ({ roomCode }: { roomCode: string }) => {
+    const updatedRoom = leaveRoom(roomCode, socket.id);
+    socket.leave(roomCode);
+    console.log(`Player ${socket.id} left room: ${roomCode}`);
+    if (updatedRoom) {
+      io.to(roomCode).emit("roomUpdated", updatedRoom);
+    }
+  });
+
+  // PLAYER READY
+  socket.on("playerReady", ({ roomCode, ready }: { roomCode: string; ready: boolean }) => {
+    const updatedRoom = setReady(roomCode, socket.id, ready);
+    if (!updatedRoom) return;
+    io.to(roomCode).emit("roomUpdated", updatedRoom);
+  });
+
+  // START GAME
+  socket.on("startGame", ({ roomCode }: { roomCode: string }) => {
+    const room = getRoomByPlayer(socket.id);
+    if (!room || room.host !== socket.id) return;
+    const allReady = Object.values(room.players).every((p) => p.ready);
+    if (!allReady) return;
+    console.log(`Game started in room: ${roomCode}`);
+    io.to(roomCode).emit("startGame", { roomCode });
+  });
+
+  // DISCONNECT
   socket.on("disconnect", () => {
     console.log(`Client disconnected: ${socket.id}`);
+    const room = getRoomByPlayer(socket.id);
+    if (!room) return;
+    const updatedRoom = leaveRoom(room.roomCode, socket.id);
+    if (updatedRoom) {
+      io.to(room.roomCode).emit("roomUpdated", updatedRoom);
+    }
   });
 });
 
