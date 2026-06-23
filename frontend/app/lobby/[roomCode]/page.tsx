@@ -17,12 +17,16 @@ export default function LobbyPage() {
   useEffect(() => {
     const socket = getSocket();
     setSocketId(socket.id ?? "");
+    // Normalize to match backend storage/room namespaces
+    const normalizedRoomCode = (roomCode ?? "").toUpperCase();
 
     function onConnect() { setSocketId(socket.id ?? ""); }
+
     function onRoomUpdated(updated: Room) {
-  console.log("ROOM UPDATED RECEIVED", updated);
-  setRoom(updated);
-}
+      console.log("ROOM UPDATED RECEIVED", updated);
+      setRoom(updated);
+    }
+
     function onStartGame({ gameId }: { roomCode: string; gameId: string }) {
       router.push(`/game/${gameId}/${roomCode}`);
     }
@@ -36,8 +40,10 @@ export default function LobbyPage() {
     socket.on("startGame", onStartGame);
     socket.on("lobbyError", onLobbyError);
 
+    const rc = normalizedRoomCode;
+
     // Emit join room event
-    socket.emit("joinRoom", { roomCode });
+    socket.emit("joinRoom", { roomCode: rc });
 
     return () => {
       socket.off("connect", onConnect);
@@ -48,22 +54,22 @@ export default function LobbyPage() {
   }, [roomCode, router]);
 
   function handleLeave() {
-    getSocket().emit("leaveRoom", { roomCode });
+    getSocket().emit("leaveRoom", { roomCode: (roomCode ?? "").toUpperCase() });
     router.push("/");
   }
 
   function handleReady() {
     if (!room) return;
     const myPlayer = room.players[socketId];
-    getSocket().emit("playerReady", { roomCode, ready: !myPlayer?.ready });
+    getSocket().emit("playerReady", { roomCode: (roomCode ?? "").toUpperCase(), ready: !myPlayer?.ready });
   }
 
   function handleSelectGame(gameId: string) {
-    getSocket().emit("lobby:selectGame", { roomCode, gameId });
+    getSocket().emit("lobby:selectGame", { roomCode: (roomCode ?? "").toUpperCase(), gameId });
   }
 
   function handleStart() {
-    getSocket().emit("startGame", { roomCode });
+    getSocket().emit("startGame", { roomCode: (roomCode ?? "").toUpperCase() });
   }
 
   const players = room ? Object.values(room.players) : [];
