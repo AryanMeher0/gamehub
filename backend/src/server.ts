@@ -196,19 +196,23 @@ io.on("connection", (socket) => {
     const existingBotCount = Object.values(room.players).filter((p) => p.isBot).length;
     const botIndex = existingBotCount % BOT_NAME_POOL.length;
     const nextBotName = BOT_NAME_POOL[botIndex];
-    const botId = `bot_${roomCode}_${existingBotCount + 1}`;
 
-    if (!room.players[botId]) {
-      const botPlayer: import("./types").Player = {
-        id: botId,
-        ready: true,
-        isBot: true,
-        botType: "easy" as BotType,
-        displayName: nextBotName,
-      };
-      room.players[botId] = botPlayer;
-      io.to(normalizedRoomCode).emit("roomUpdated", room);
-    }
+    // Use normalizedRoomCode for bot id consistency
+    const botId = `bot_${normalizedRoomCode}_${existingBotCount + 1}`;
+
+    // Prevent duplicate bots in case of rapid clicks
+    if (room.players[botId]) return;
+
+    const botPlayer: import("./types").Player = {
+      id: botId,
+      ready: true,
+      isBot: true,
+      botType: "easy" as BotType,
+      displayName: nextBotName,
+    };
+
+    room.players[botId] = botPlayer;
+    io.to(normalizedRoomCode).emit("roomUpdated", room);
   });
 
   socket.on("startGame", ({ roomCode }: { roomCode: string }) => {

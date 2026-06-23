@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { Room, Player } from "@/types/lobby";
+
 import { GAME_REGISTRY } from "@/lib/games";
 import GamePicker from "@/components/lobby/GamePicker";
 
@@ -72,6 +73,11 @@ export default function LobbyPage() {
     getSocket().emit("startGame", { roomCode: (roomCode ?? "").toUpperCase() });
   }
 
+  function handleAddBot() {
+    getSocket().emit("lobby:addBot", { roomCode: (roomCode ?? "").toUpperCase() });
+  }
+
+
   const players = room ? Object.values(room.players) : [];
   const isHost = room?.host === socketId;
   const myReady = room?.players[socketId]?.ready ?? false;
@@ -85,6 +91,7 @@ export default function LobbyPage() {
     allReady &&
     !!selectedGame &&
     players.length >= (selectedGame?.minPlayers ?? 2);
+
 
   const startLabel = !selectedGame
     ? "Select a game first"
@@ -129,6 +136,7 @@ export default function LobbyPage() {
           <div className="mb-3 flex items-center justify-between">
             <p className="text-sm font-semibold text-gray-300">Players</p>
             <p className="text-sm text-gray-500">{players.length} connected</p>
+
           </div>
           <ul className="flex flex-col gap-2">
             {players.map((player: Player) => (
@@ -137,10 +145,17 @@ export default function LobbyPage() {
                 className="flex items-center justify-between rounded-xl bg-gray-800 px-4 py-3"
               >
                 <div className="flex items-center gap-2">
-                  <span className="text-sm font-mono text-gray-300">
-                    {player.id.slice(0, 8)}…
+          <span className="text-sm font-mono text-gray-300">
+                    {player.displayName ?? player.id.slice(0, 8) + "…"}
                   </span>
+                  {player.isBot && (
+                    <span className="rounded-full bg-sky-900 px-2 py-0.5 text-[10px] font-semibold text-sky-300">
+                      BOT
+                    </span>
+                  )}
+
                   {player.id === room.host && (
+
                     <span className="rounded-full bg-yellow-900 px-2 py-0.5 text-xs text-yellow-400">
                       Host
                     </span>
@@ -178,7 +193,17 @@ export default function LobbyPage() {
 
         {isHost && (
           <button
+            onClick={handleAddBot}
+            className="w-full rounded-2xl bg-sky-700 py-4 text-lg font-bold hover:bg-sky-600 active:scale-95 transition-all"
+          >
+            Add Bot
+          </button>
+        )}
+
+        {isHost && (
+          <button
             onClick={handleStart}
+
             disabled={!canStart}
             className="w-full rounded-2xl bg-indigo-600 py-4 text-lg font-bold hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40 active:scale-95 transition-all"
           >
@@ -192,6 +217,7 @@ export default function LobbyPage() {
         >
           Leave Room
         </button>
+
       </div>
     </main>
   );
