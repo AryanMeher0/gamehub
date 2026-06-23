@@ -45,8 +45,20 @@ function SpaceCell({
         <p className="text-[5px] text-red-400">-${space.tax}</p>
       )}
 
-      {/* Owner indicator — replaces price when owned */}
-      {ownership && ownerColor && (
+      {/* Buildings */}
+      {ownership && ownership.hasHotel && (
+        <div className="text-[7px] leading-none" title="Hotel">🏨</div>
+      )}
+      {ownership && !ownership.hasHotel && ownership.houseCount > 0 && (
+        <div className="flex gap-px justify-center">
+          {Array.from({ length: ownership.houseCount }).map((_, i) => (
+            <div key={i} className="h-1.5 w-1.5 rounded-sm bg-green-500" title="House" />
+          ))}
+        </div>
+      )}
+
+      {/* Owner dot — shown when owned but no buildings */}
+      {ownership && ownerColor && !ownership.hasHotel && ownership.houseCount === 0 && (
         <div
           className="mb-0.5 h-2 w-2 rounded-full border border-white/40 shadow"
           style={{ backgroundColor: ownerColor }}

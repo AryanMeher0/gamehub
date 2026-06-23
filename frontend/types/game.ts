@@ -29,6 +29,8 @@ export interface PropertyOwnership {
   name: string;
   color?: string;
   type: SpaceType;
+  houseCount: number;
+  hasHotel: boolean;
 }
 
 export interface GamePlayer {
@@ -38,7 +40,19 @@ export interface GamePlayer {
   cash: number;
   inJail: boolean;
   jailTurns: number;
+  consecutiveDoubles: number;
+  getOutOfJailFreeCards: number;
   color: string;
+  bankrupt: boolean;
+}
+
+export interface PlayerRanking {
+  id: string;
+  name: string;
+  color: string;
+  cash: number;
+  propertyCount: number;
+  rank: number;
 }
 
 export interface DiceRoll {
@@ -48,13 +62,37 @@ export interface DiceRoll {
   isDoubles: boolean;
 }
 
+export interface DrawnCard {
+  id: string;
+  title: string;
+  description: string;
+  deck: "chance" | "community";
+}
+
+export interface TradeOffer {
+  id: string;
+  fromId: string;
+  toId: string;
+  offeredCash: number;
+  requestedCash: number;
+  offeredPropertyIndices: number[];
+  requestedPropertyIndices: number[];
+  status: "pending" | "accepted" | "rejected";
+}
+
 export interface GameState {
   roomCode: string;
   players: Record<string, GamePlayer>;
   turnOrder: string[];
   currentTurnIndex: number;
-  phase: "waiting" | "rolling" | "buying" | "ended";
+  phase: "waiting" | "rolling" | "buying" | "card" | "ended" | "gameover";
   lastRoll: DiceRoll | null;
   properties: Record<number, PropertyOwnership>;
   log: string[];
+  activeCard: DrawnCard | null;
+  gameOver: boolean;
+  winnerId: string | null;
+  winnerName: string | null;
+  rankings: PlayerRanking[];
+  trades: Record<string, TradeOffer>;
 }

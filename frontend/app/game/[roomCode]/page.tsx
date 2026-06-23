@@ -96,6 +96,8 @@ export default function GamePage() {
             socketId={socketId}
             onRoll={handleRoll}
             onEndTurn={handleEndTurn}
+            onBuyBuilding={() => {}}
+            onOpenTrade={() => {}}
           />
           <GameLog log={state.log} />
         </div>

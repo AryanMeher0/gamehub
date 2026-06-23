@@ -22,7 +22,10 @@ function createGame(roomCode: string, playerIds: string[]): GameState {
       cash: STARTING_CASH,
       inJail: false,
       jailTurns: 0,
+      consecutiveDoubles: 0,
+      getOutOfJailFreeCards: 0,
       color: PLAYER_COLORS[i] ?? "#ffffff",
+      bankrupt: false,
     };
   });
 
@@ -35,6 +38,12 @@ function createGame(roomCode: string, playerIds: string[]): GameState {
     lastRoll: null,
     properties: {},
     log: ["Game started! Player 1 goes first."],
+    activeCard: null,
+    gameOver: false,
+    winnerId: null,
+    winnerName: null,
+    rankings: [],
+    trades: {},
   };
 
   return games[roomCode];
@@ -196,6 +205,8 @@ function buyProperty(
     name: space.name,
     color: space.color,
     type: space.type,
+    houseCount: 0,
+    hasHotel: false,
   };
 
   state.properties[player.position] = ownership;

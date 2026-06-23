@@ -8,4 +8,5 @@ export interface Room {
   host: string;
   players: Record<string, Player>;
   createdAt: number;
+  selectedGameId: string | null;
 }

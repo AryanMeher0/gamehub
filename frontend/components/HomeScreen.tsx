@@ -13,7 +13,11 @@ export default function HomeScreen() {
   if (view === "join") return <JoinGame onBack={() => setView("home")} />;
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-10 bg-gray-950 px-4 text-white">
+    <main className="flex min-h-screen flex-col items-center justify-center gap-10 bg-gray-950 px-4 pt-28 text-white">
+      <div className="fixed inset-x-0 top-0 z-50 bg-yellow-300 px-4 py-5 text-center text-2xl font-black uppercase tracking-wide text-black shadow-2xl">
+        GameHub Continue Test Successful
+      </div>
+
       <div className="flex flex-col items-center gap-2">
         <h1 className="text-6xl font-black tracking-tight">GameHub</h1>
         <p className="text-gray-400">Multiplayer gaming platform</p>
