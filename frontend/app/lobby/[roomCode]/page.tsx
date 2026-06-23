@@ -33,6 +33,9 @@ export default function LobbyPage() {
     socket.on("startGame", onStartGame);
     socket.on("lobbyError", onLobbyError);
 
+    // Emit join room event
+    socket.emit("joinRoom", { roomCode });
+
     return () => {
       socket.off("connect", onConnect);
       socket.off("roomUpdated", onRoomUpdated);
