@@ -19,7 +19,10 @@ export default function LobbyPage() {
     setSocketId(socket.id ?? "");
 
     function onConnect() { setSocketId(socket.id ?? ""); }
-    function onRoomUpdated(updated: Room) { setRoom(updated); }
+    function onRoomUpdated(updated: Room) {
+  console.log("ROOM UPDATED RECEIVED", updated);
+  setRoom(updated);
+}
     function onStartGame({ gameId }: { roomCode: string; gameId: string }) {
       router.push(`/game/${gameId}/${roomCode}`);
     }
