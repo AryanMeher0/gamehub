@@ -22,7 +22,9 @@ import {
   registerDisconnect, claimReconnectById, clearSession,
 } from "./reconnectManager";
 import { listSaves, loadGame } from "./saveManager";
-import { Room } from "./types";
+import { Room, BotType } from "./types";
+import { BOT_NAME_POOL } from "./bots/botNames";
+
 
 const app = express();
 const httpServer = createServer(app);
@@ -181,7 +183,36 @@ io.on("connection", (socket) => {
   });
 
   // ── START GAME ────────────────────────────────────────────────────────────
+  socket.on("lobby:addBot", ({ roomCode }: { roomCode: string }) => {
+    const normalizedRoomCode = roomCode.toUpperCase();
+    const room = getRoom(normalizedRoomCode);
+    if (!room) return;
+    if (room.host !== socket.id) {
+      socket.emit("lobbyError", { message: "Only the host can add bots" });
+      return;
+    }
+
+    // Determine bot id and name
+    const existingBotCount = Object.values(room.players).filter((p) => p.isBot).length;
+    const botIndex = existingBotCount % BOT_NAME_POOL.length;
+    const nextBotName = BOT_NAME_POOL[botIndex];
+    const botId = `bot_${roomCode}_${existingBotCount + 1}`;
+
+    if (!room.players[botId]) {
+      const botPlayer: import("./types").Player = {
+        id: botId,
+        ready: true,
+        isBot: true,
+        botType: "easy" as BotType,
+        displayName: nextBotName,
+      };
+      room.players[botId] = botPlayer;
+      io.to(normalizedRoomCode).emit("roomUpdated", room);
+    }
+  });
+
   socket.on("startGame", ({ roomCode }: { roomCode: string }) => {
+
     const room = getRoomByPlayer(socket.id);
     if (!room || room.host !== socket.id) return;
 
