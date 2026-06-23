@@ -4,7 +4,9 @@ let socket: Socket | null = null;
 
 export function getSocket(): Socket {
   if (!socket) {
-    socket = io("http://localhost:4000", { autoConnect: true });
+    socket = io("https://gamehub-backend-xqoy.onrender.com", {
+      autoConnect: true,
+    });
   }
   return socket;
 }
