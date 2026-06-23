@@ -31,7 +31,10 @@ function SpaceCell({
     >
       {/* Property color bar */}
       {propertyColorHex && (
-        <div className="w-full shrink-0" style={{ backgroundColor: propertyColorHex, height: "22%" }} />
+        <div
+          className="w-full shrink-0"
+          style={{ backgroundColor: propertyColorHex, height: "22%" }}
+        />
       )}
 
       <p className="px-0.5 text-[6px] leading-tight text-gray-300 font-medium line-clamp-2 w-full">
@@ -41,18 +44,22 @@ function SpaceCell({
       {space.price && !ownership && (
         <p className="text-[5px] text-gray-500">${space.price}</p>
       )}
-      {space.tax && (
-        <p className="text-[5px] text-red-400">-${space.tax}</p>
-      )}
+      {space.tax && <p className="text-[5px] text-red-400">-${space.tax}</p>}
 
       {/* Buildings */}
       {ownership && ownership.hasHotel && (
-        <div className="text-[7px] leading-none" title="Hotel">🏨</div>
+        <div className="text-[7px] leading-none" title="Hotel">
+          🏨
+        </div>
       )}
       {ownership && !ownership.hasHotel && ownership.houseCount > 0 && (
         <div className="flex gap-px justify-center">
           {Array.from({ length: ownership.houseCount }).map((_, i) => (
-            <div key={i} className="h-1.5 w-1.5 rounded-sm bg-green-500" title="House" />
+            <div
+              key={i}
+              className="h-1.5 w-1.5 rounded-sm bg-green-500"
+              title="House"
+            />
           ))}
         </div>
       )}
@@ -92,8 +99,7 @@ function getBoardPosition(index: number): [number, number] {
 
 export default function Board({ players, properties }: Props) {
   return (
-    <div
-      className="relative grid aspect-square w-full"
+    <div className="relative grid aspect-square w-full"
       style={{
         gridTemplateColumns: "repeat(11, 1fr)",
         gridTemplateRows: "repeat(11, 1fr)",
@@ -132,3 +138,4 @@ export default function Board({ players, properties }: Props) {
     </div>
   );
 }
+
