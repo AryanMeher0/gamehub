@@ -273,7 +273,7 @@ function applyLanding(
     if (player.cash < 0) {
       state.log.push(`${player.name} cannot pay $${space.tax} tax and is bankrupt!`);
       applyBankruptcy(state, playerId, null);
-      if (!checkVictory(state)) state.phase = "ended";
+      if (!checkVictory(state)) state.phase = "rolling";
     } else {
       state.log.push(`${player.name} paid $${space.tax} in tax.`);
       state.phase = "ended";
@@ -331,7 +331,7 @@ function applyLanding(
           `${player.name} cannot pay $${rent} rent on ${space.name}${buildingSuffix} — only $${partial} paid.`
         );
         applyBankruptcy(state, playerId, existing.ownerId);
-        if (!checkVictory(state)) state.phase = "ended";
+        if (!checkVictory(state)) state.phase = "rolling";
         return;
       }
 
@@ -516,7 +516,7 @@ function resolveCard(
     if (player.cash < 0) {
       state.log.push(`${player.name} cannot pay $${effect.amount} and is bankrupt!`);
       applyBankruptcy(state, socketId, null);
-      if (!checkVictory(state)) state.phase = "ended";
+      if (!checkVictory(state)) state.phase = "rolling";
     } else {
       state.log.push(`${player.name} paid $${effect.amount}.`);
       state.phase = "ended";
@@ -594,7 +594,7 @@ function resolveCard(
       }
       state.log.push(`${player.name} cannot pay $${total} total — paid $${share} each and is bankrupt!`);
       applyBankruptcy(state, socketId, null);
-      if (!checkVictory(state)) state.phase = "ended";
+      if (!checkVictory(state)) state.phase = "rolling";
     } else {
       player.cash -= total;
       for (const otherId of others) {
@@ -631,7 +631,7 @@ function resolveCard(
     } else if (player.cash < total) {
       state.log.push(`${player.name} cannot pay $${total} for street repairs and is bankrupt!`);
       applyBankruptcy(state, socketId, null);
-      if (!checkVictory(state)) state.phase = "ended";
+      if (!checkVictory(state)) state.phase = "rolling";
     } else {
       player.cash -= total;
       state.log.push(`${player.name} paid $${total} for street repairs (${effect.houseCost}/house, ${effect.hotelCost}/hotel).`);
@@ -869,6 +869,10 @@ function sellBuilding(
   const state = games[roomCode];
   if (!state) return { state: null!, error: "Game not found" };
   if (state.phase === "gameover") return { state, error: "Game is over" };
+  if (getCurrentPlayerId(state) !== socketId) return { state, error: "Not your turn" };
+  if (state.phase !== "rolling" && state.phase !== "ended") {
+    return { state, error: "Can only sell buildings before rolling or after resolving your space" };
+  }
 
   const player = state.players[socketId];
   if (!player || player.bankrupt) return { state, error: "Player not found" };
@@ -977,6 +981,10 @@ function mortgageProperty(
   const state = games[roomCode];
   if (!state) return { state: null!, error: "Game not found" };
   if (state.phase === "gameover") return { state, error: "Game is over" };
+  if (getCurrentPlayerId(state) !== socketId) return { state, error: "Not your turn" };
+  if (state.phase !== "rolling" && state.phase !== "ended") {
+    return { state, error: "Can only mortgage before rolling or after resolving your space" };
+  }
 
   const player = state.players[socketId];
   if (!player || player.bankrupt) return { state, error: "Player not found" };
@@ -1014,6 +1022,10 @@ function unmortgageProperty(
   const state = games[roomCode];
   if (!state) return { state: null!, error: "Game not found" };
   if (state.phase === "gameover") return { state, error: "Game is over" };
+  if (getCurrentPlayerId(state) !== socketId) return { state, error: "Not your turn" };
+  if (state.phase !== "rolling" && state.phase !== "ended") {
+    return { state, error: "Can only unmortgage before rolling or after resolving your space" };
+  }
 
   const player = state.players[socketId];
   if (!player || player.bankrupt) return { state, error: "Player not found" };

@@ -63,6 +63,7 @@ export default function PlayerPanel({
 
   const isRollingPhase = isMyTurn && state.phase === "rolling";
   const isEndedPhase = isMyTurn && state.phase === "ended";
+  const canManageProperties = isMyTurn && (state.phase === "rolling" || state.phase === "ended");
   const inJail = myPlayer?.inJail ?? false;
 
   // Buildable properties (even-building rule shown via visual check)
@@ -100,7 +101,8 @@ export default function PlayerPanel({
     (p) => p.ownerId === socketId && p.mortgaged
   );
 
-  const hasAnyPropertyActions = sellable.length > 0 || mortgageable.length > 0 || unmortgageable.length > 0;
+  const hasAnyPropertyActions = canManageProperties &&
+    (sellable.length > 0 || mortgageable.length > 0 || unmortgageable.length > 0);
 
   return (
     <div className="flex flex-col gap-3">

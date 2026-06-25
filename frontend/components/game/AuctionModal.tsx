@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { GameState, AuctionState } from "@/types/game";
 import { BOARD, PROPERTY_COLORS } from "@/lib/board";
 
@@ -26,6 +26,10 @@ export default function AuctionModal({ state, socketId, onBid, onPass }: Props) 
 
   const minBid = auction.highestBid + 1;
   const [bidAmount, setBidAmount] = useState(minBid);
+
+  useEffect(() => {
+    setBidAmount(auction.highestBid + 1);
+  }, [auction.highestBid]);
 
   const canAfford = (myPlayer?.cash ?? 0) >= bidAmount;
   const isOver = state.phase !== "auction";
