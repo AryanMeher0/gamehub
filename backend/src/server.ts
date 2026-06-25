@@ -15,6 +15,7 @@ import {
   payJailFine, useGojf, mortgageProperty, unmortgageProperty,
   handlePlayerDisconnect, reassignPlayerId, loadSavedGame, persistGame, getGame,
 } from "./games/monopoly/gameManager";
+
 import { createTrade, acceptTrade, rejectTrade } from "./games/monopoly/tradeManager";
 import {
   applyOperatorAction, OPERATOR_CARDS, OperatorAction,
@@ -145,9 +146,10 @@ io.on("connection", (socket) => {
   // ── CREATE ROOM ───────────────────────────────────────────────────────────
   socket.on("createRoom", () => {
     const room = createRoom(socket.id);
-    socket.join(room.roomCode);
-    console.log(`Room created: ${room.roomCode} by ${socket.id}`);
-    socket.emit("roomUpdated", room);
+    const rc = room.roomCode.toUpperCase();
+    socket.join(rc);
+    console.log(`Room created: ${rc} by ${socket.id}`);
+    socket.emit("roomUpdated", { ...room, roomCode: rc });
   });
 
   // ── JOIN ROOM ─────────────────────────────────────────────────────────────
@@ -450,6 +452,7 @@ io.on("connection", (socket) => {
   socket.on("game:createTrade", (payload: {
     roomCode: string; toId: string; offeredCash: number; requestedCash: number;
     offeredPropertyIndices: number[]; requestedPropertyIndices: number[];
+    offeredGojfCount?: number; requestedGojfCount?: number;
   }) => {
     const state = getGame(payload.roomCode);
     if (!state) { socket.emit("game:error", { message: "Game not found" }); return; }

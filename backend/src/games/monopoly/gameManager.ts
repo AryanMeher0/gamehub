@@ -150,6 +150,15 @@ function applyBankruptcy(state: GameState, playerId: string, creditorId: string 
     }
   }
 
+  // Transfer GOJF cards to creditor per official rules
+  const gojfCards = player.getOutOfJailFreeCards ?? 0;
+  if (gojfCards > 0 && creditorId && state.players[creditorId] && !state.players[creditorId].bankrupt) {
+    state.players[creditorId].getOutOfJailFreeCards =
+      (state.players[creditorId].getOutOfJailFreeCards ?? 0) + gojfCards;
+    state.log.push(`  ${gojfCards} Get Out of Jail Free card(s) transferred to ${state.players[creditorId].name}.`);
+  }
+  player.getOutOfJailFreeCards = 0;
+
   const idx = state.turnOrder.indexOf(playerId);
   if (idx !== -1) {
     state.turnOrder.splice(idx, 1);

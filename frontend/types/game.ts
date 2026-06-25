@@ -81,6 +81,8 @@ export interface TradeOffer {
   requestedCash: number;
   offeredPropertyIndices: number[];
   requestedPropertyIndices: number[];
+  offeredGojfCount: number;
+  requestedGojfCount: number;
   status: "pending" | "accepted" | "rejected";
 }
 

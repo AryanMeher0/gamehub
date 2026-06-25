@@ -13,6 +13,8 @@ interface Props {
     requestedCash: number;
     offeredPropertyIndices: number[];
     requestedPropertyIndices: number[];
+    offeredGojfCount: number;
+    requestedGojfCount: number;
   }) => void;
   onClose: () => void;
 }
@@ -28,6 +30,8 @@ export default function TradeModal({ state, socketId, onSend, onClose }: Props) 
   const [requestedCash, setRequestedCash] = useState(0);
   const [offeredProps, setOfferedProps] = useState<number[]>([]);
   const [requestedProps, setRequestedProps] = useState<number[]>([]);
+  const [offeredGojf, setOfferedGojf] = useState(0);
+  const [requestedGojf, setRequestedGojf] = useState(0);
 
   const myProperties = Object.values(state.properties).filter((p) => p.ownerId === socketId);
   const theirProperties = Object.values(state.properties).filter((p) => p.ownerId === toId);
@@ -47,15 +51,29 @@ export default function TradeModal({ state, socketId, onSend, onClose }: Props) 
   function handleTargetChange(id: string) {
     setToId(id);
     setRequestedProps([]);
+    setRequestedGojf(0);
   }
 
   function handleSend() {
     if (!toId) return;
-    onSend({ toId, offeredCash, requestedCash, offeredPropertyIndices: offeredProps, requestedPropertyIndices: requestedProps });
+    onSend({
+      toId,
+      offeredCash,
+      requestedCash,
+      offeredPropertyIndices: offeredProps,
+      requestedPropertyIndices: requestedProps,
+      offeredGojfCount: offeredGojf,
+      requestedGojfCount: requestedGojf,
+    });
   }
 
   const targetPlayer = state.players[toId];
-  const hasSomething = offeredCash > 0 || requestedCash > 0 || offeredProps.length > 0 || requestedProps.length > 0;
+  const myGojf = myPlayer?.getOutOfJailFreeCards ?? 0;
+  const theirGojf = targetPlayer?.getOutOfJailFreeCards ?? 0;
+  const hasSomething =
+    offeredCash > 0 || requestedCash > 0 ||
+    offeredProps.length > 0 || requestedProps.length > 0 ||
+    offeredGojf > 0 || requestedGojf > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
@@ -104,6 +122,19 @@ export default function TradeModal({ state, socketId, onSend, onClose }: Props) 
                   className="mt-1 w-full rounded-lg bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
+              {myGojf > 0 && (
+                <div className="mb-2">
+                  <label className="text-xs text-gray-400">GOJF Cards (you have {myGojf})</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={myGojf}
+                    value={offeredGojf}
+                    onChange={(e) => setOfferedGojf(Math.min(myGojf, Math.max(0, Number(e.target.value))))}
+                    className="mt-1 w-full rounded-lg bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              )}
               {myProperties.length > 0 && (
                 <div className="flex flex-col gap-1">
                   {myProperties.map((p: PropertyOwnership) => (
@@ -116,7 +147,7 @@ export default function TradeModal({ state, socketId, onSend, onClose }: Props) 
                   ))}
                 </div>
               )}
-              {myProperties.length === 0 && (
+              {myProperties.length === 0 && myGojf === 0 && (
                 <p className="text-xs text-gray-600 italic">No properties</p>
               )}
             </div>
@@ -137,6 +168,19 @@ export default function TradeModal({ state, socketId, onSend, onClose }: Props) 
                   className="mt-1 w-full rounded-lg bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-indigo-500"
                 />
               </div>
+              {theirGojf > 0 && (
+                <div className="mb-2">
+                  <label className="text-xs text-gray-400">GOJF Cards (they have {theirGojf})</label>
+                  <input
+                    type="number"
+                    min={0}
+                    max={theirGojf}
+                    value={requestedGojf}
+                    onChange={(e) => setRequestedGojf(Math.min(theirGojf, Math.max(0, Number(e.target.value))))}
+                    className="mt-1 w-full rounded-lg bg-gray-800 px-3 py-2 text-sm text-white outline-none focus:ring-1 focus:ring-indigo-500"
+                  />
+                </div>
+              )}
               {theirProperties.length > 0 && (
                 <div className="flex flex-col gap-1">
                   {theirProperties.map((p: PropertyOwnership) => (
@@ -149,7 +193,7 @@ export default function TradeModal({ state, socketId, onSend, onClose }: Props) 
                   ))}
                 </div>
               )}
-              {theirProperties.length === 0 && (
+              {theirProperties.length === 0 && theirGojf === 0 && (
                 <p className="text-xs text-gray-600 italic">No properties</p>
               )}
             </div>
@@ -159,11 +203,19 @@ export default function TradeModal({ state, socketId, onSend, onClose }: Props) 
           {hasSomething && targetPlayer && (
             <div className="rounded-xl bg-gray-800 px-4 py-3 text-xs text-gray-300 leading-relaxed">
               <span className="font-bold text-white">Summary: </span>
-              You give {offeredProps.map((i) => state.properties[i]?.name).join(", ") || (offeredCash > 0 ? "" : "nothing")}
-              {offeredCash > 0 && (offeredProps.length > 0 ? ` + $${offeredCash}` : `$${offeredCash}`)}
-              {" → "}
-              {requestedProps.map((i) => state.properties[i]?.name).join(", ") || (requestedCash > 0 ? "" : "nothing")}
-              {requestedCash > 0 && (requestedProps.length > 0 ? ` + $${requestedCash}` : `$${requestedCash}`)}
+              {(() => {
+                const giveParts = [
+                  ...offeredProps.map((i) => state.properties[i]?.name).filter(Boolean),
+                  ...(offeredCash > 0 ? [`$${offeredCash}`] : []),
+                  ...(offeredGojf > 0 ? [`${offeredGojf}x GOJF`] : []),
+                ];
+                const wantParts = [
+                  ...requestedProps.map((i) => state.properties[i]?.name).filter(Boolean),
+                  ...(requestedCash > 0 ? [`$${requestedCash}`] : []),
+                  ...(requestedGojf > 0 ? [`${requestedGojf}x GOJF`] : []),
+                ];
+                return `You give ${giveParts.join(", ") || "nothing"} → ${wantParts.join(", ") || "nothing"}`;
+              })()}
             </div>
           )}
         </div>

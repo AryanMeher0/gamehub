@@ -13,6 +13,8 @@ interface CreateTradeInput {
   requestedCash: number;
   offeredPropertyIndices: number[];
   requestedPropertyIndices: number[];
+  offeredGojfCount?: number;
+  requestedGojfCount?: number;
 }
 
 export function createTrade(
@@ -40,6 +42,12 @@ export function createTrade(
   if (input.offeredCash < 0 || input.requestedCash < 0) return { error: "Cash amounts must be non-negative" };
   if (from.cash < input.offeredCash) return { error: "Insufficient cash to offer" };
 
+  const offeredGojf = input.offeredGojfCount ?? 0;
+  const requestedGojf = input.requestedGojfCount ?? 0;
+  if (offeredGojf < 0 || requestedGojf < 0) return { error: "GOJF card counts must be non-negative" };
+  if (offeredGojf > (from.getOutOfJailFreeCards ?? 0)) return { error: "You don't have that many Get Out of Jail Free cards" };
+  if (requestedGojf > (to.getOutOfJailFreeCards ?? 0)) return { error: "Target player doesn't have that many Get Out of Jail Free cards" };
+
   for (const idx of input.offeredPropertyIndices) {
     if (state.properties[idx]?.ownerId !== input.fromId) {
       return { error: `You don't own property at index ${idx}` };
@@ -59,6 +67,8 @@ export function createTrade(
     requestedCash: input.requestedCash,
     offeredPropertyIndices: input.offeredPropertyIndices,
     requestedPropertyIndices: input.requestedPropertyIndices,
+    offeredGojfCount: offeredGojf,
+    requestedGojfCount: requestedGojf,
     status: "pending",
   };
 
@@ -69,10 +79,12 @@ export function createTrade(
   const parts: string[] = [];
   if (input.offeredCash > 0) parts.push(`$${input.offeredCash}`);
   for (const idx of input.offeredPropertyIndices) parts.push(state.properties[idx].name);
+  if (offeredGojf > 0) parts.push(`${offeredGojf}x GOJF card`);
 
   const wantParts: string[] = [];
   if (input.requestedCash > 0) wantParts.push(`$${input.requestedCash}`);
   for (const idx of input.requestedPropertyIndices) wantParts.push(state.properties[idx].name);
+  if (requestedGojf > 0) wantParts.push(`${requestedGojf}x GOJF card`);
 
   state.log.push(
     `🤝 ${fromName} offered ${parts.join(", ") || "nothing"} to ${toName}` +
@@ -100,6 +112,12 @@ export function acceptTrade(
   // Re-validate at execution time
   if (from.cash < trade.offeredCash)   return { error: "Initiator no longer has enough cash" };
   if (to.cash   < trade.requestedCash) return { error: "You no longer have enough cash" };
+  if ((trade.offeredGojfCount ?? 0) > (from.getOutOfJailFreeCards ?? 0)) {
+    return { error: "Initiator no longer has enough Get Out of Jail Free cards" };
+  }
+  if ((trade.requestedGojfCount ?? 0) > (to.getOutOfJailFreeCards ?? 0)) {
+    return { error: "You no longer have enough Get Out of Jail Free cards" };
+  }
 
   for (const idx of trade.offeredPropertyIndices) {
     if (state.properties[idx]?.ownerId !== trade.fromId) {
@@ -117,6 +135,12 @@ export function acceptTrade(
   to.cash   += trade.offeredCash;
   to.cash   -= trade.requestedCash;
   from.cash += trade.requestedCash;
+
+  // Transfer GOJF cards
+  const offeredGojf = trade.offeredGojfCount ?? 0;
+  const requestedGojf = trade.requestedGojfCount ?? 0;
+  from.getOutOfJailFreeCards = (from.getOutOfJailFreeCards ?? 0) - offeredGojf + requestedGojf;
+  to.getOutOfJailFreeCards   = (to.getOutOfJailFreeCards   ?? 0) + offeredGojf - requestedGojf;
 
   for (const idx of trade.offeredPropertyIndices) {
     const prop = state.properties[idx];

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { BoardSpace, GameState } from "@/types/game";
 
-type Tab = "Players" | "Properties" | "Buildings" | "Cards" | "Economy" | "Events" | "Bots" | "Debug";
+type Tab = "Overview" | "Players" | "Properties" | "Buildings" | "Cards" | "Economy" | "Events" | "Bots" | "Debug";
 type CardDeck = "chance" | "community";
 type CardOption = { id: string; title: string; description: string };
 type AccessPayload =
@@ -17,7 +17,7 @@ type AccessPayload =
       cards: Record<CardDeck, CardOption[]>;
     };
 
-const TABS: Tab[] = ["Players", "Properties", "Buildings", "Cards", "Economy", "Events", "Bots", "Debug"];
+const TABS: Tab[] = ["Overview", "Players", "Properties", "Buildings", "Cards", "Economy", "Events", "Bots", "Debug"];
 
 export default function OperatorPage() {
   const { roomCode: rawRoomCode } = useParams<{ roomCode: string }>();
@@ -31,7 +31,7 @@ export default function OperatorPage() {
     chance: [],
     community: [],
   });
-  const [tab, setTab] = useState<Tab>("Players");
+  const [tab, setTab] = useState<Tab>("Overview");
   const [status, setStatus] = useState("");
   const [playerId, setPlayerId] = useState("");
   const [cashAmount, setCashAmount] = useState(100);
@@ -222,6 +222,160 @@ export default function OperatorPage() {
           </div>
         )}
 
+        {tab === "Overview" && (
+          <div className="flex flex-col gap-5">
+            {/* Game status bar */}
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+              <StatBadge label="Phase" value={state.phase} />
+              <StatBadge label="Current Turn" value={currentPlayer?.name ?? "—"} />
+              <StatBadge label="Houses Left" value={String(state.housesRemaining)} />
+              <StatBadge label="Hotels Left" value={String(state.hotelsRemaining)} />
+            </div>
+
+            {/* All players grid */}
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+              {players.map((player) => {
+                const ownedProps = ownedProperties.filter((p) => p.ownerId === player.id);
+                const isCurrent = state.turnOrder[state.currentTurnIndex] === player.id;
+                return (
+                  <div
+                    key={player.id}
+                    className={`relative flex flex-col gap-3 rounded-2xl border p-4 ${
+                      player.bankrupt
+                        ? "border-slate-800 bg-slate-900/40 opacity-50"
+                        : isCurrent
+                        ? "border-amber-500/60 bg-amber-950/20 shadow-lg shadow-amber-900/20"
+                        : "border-slate-700 bg-slate-900"
+                    }`}
+                  >
+                    {isCurrent && !player.bankrupt && (
+                      <span className="absolute right-3 top-3 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-slate-950">
+                        TURN
+                      </span>
+                    )}
+                    {player.bankrupt && (
+                      <span className="absolute right-3 top-3 rounded-full bg-red-900 px-2 py-0.5 text-[10px] font-black text-red-300">
+                        BANKRUPT
+                      </span>
+                    )}
+
+                    {/* Player identity */}
+                    <div className="flex items-center gap-2.5">
+                      <div
+                        className="h-8 w-8 shrink-0 rounded-full border-2 border-white/20 shadow"
+                        style={{ backgroundColor: player.color }}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate font-black text-white">{player.name}</p>
+                        {player.isBot && (
+                          <p className="text-[10px] uppercase tracking-wide text-slate-500">
+                            Bot · {player.botType ?? "easy"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Key stats */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-xl bg-slate-950 px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wide text-slate-500">Cash</p>
+                        <p className="font-black text-green-400">${player.cash.toLocaleString()}</p>
+                      </div>
+                      <div className="rounded-xl bg-slate-950 px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-wide text-slate-500">Position</p>
+                        <p className="truncate text-sm font-bold text-white">
+                          {board[player.position]?.name ?? `#${player.position}`}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Status badges */}
+                    <div className="flex flex-wrap gap-1.5">
+                      {player.inJail && (
+                        <span className="rounded-full bg-red-950 px-2 py-0.5 text-[10px] font-bold text-red-300">
+                          Jail (turn {player.jailTurns}/3)
+                        </span>
+                      )}
+                      {(player.getOutOfJailFreeCards ?? 0) > 0 && (
+                        <span className="rounded-full bg-indigo-950 px-2 py-0.5 text-[10px] font-bold text-indigo-300">
+                          {player.getOutOfJailFreeCards}× GOJF
+                        </span>
+                      )}
+                      {player.consecutiveDoubles > 0 && (
+                        <span className="rounded-full bg-amber-950 px-2 py-0.5 text-[10px] font-bold text-amber-300">
+                          {player.consecutiveDoubles}× doubles
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Properties owned */}
+                    {ownedProps.length > 0 && (
+                      <div>
+                        <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wide text-slate-500">
+                          Properties ({ownedProps.length})
+                        </p>
+                        <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
+                          {ownedProps.map((prop) => (
+                            <div key={prop.spaceIndex} className="flex items-center justify-between gap-2 rounded-lg bg-slate-950 px-2 py-1">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                {prop.color && (
+                                  <div
+                                    className="h-2 w-2 shrink-0 rounded-sm"
+                                    style={{
+                                      backgroundColor:
+                                        prop.color === "brown" ? "#92400e"
+                                        : prop.color === "lightblue" ? "#38bdf8"
+                                        : prop.color === "pink" ? "#f472b6"
+                                        : prop.color === "orange" ? "#fb923c"
+                                        : prop.color === "red" ? "#ef4444"
+                                        : prop.color === "yellow" ? "#facc15"
+                                        : prop.color === "green" ? "#22c55e"
+                                        : prop.color === "darkblue" ? "#1d4ed8"
+                                        : "#6b7280",
+                                    }}
+                                  />
+                                )}
+                                <span className="truncate text-[10px] text-slate-300">{prop.name}</span>
+                              </div>
+                              <div className="flex shrink-0 items-center gap-1">
+                                {prop.mortgaged && (
+                                  <span className="text-[9px] text-orange-400 font-bold">MTG</span>
+                                )}
+                                {prop.hasHotel && <span className="text-[10px]">🏨</span>}
+                                {!prop.hasHotel && prop.houseCount > 0 && (
+                                  <span className="text-[10px] text-green-400">{prop.houseCount}⌂</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Quick actions */}
+                    {!player.bankrupt && (
+                      <div className="grid grid-cols-2 gap-1.5 border-t border-slate-800 pt-3">
+                        <button
+                          onClick={() => { setPlayerId(player.id); setTab("Players"); }}
+                          className="rounded-lg bg-amber-400/10 px-2 py-1.5 text-[10px] font-bold text-amber-400 hover:bg-amber-400/20"
+                        >
+                          Edit player
+                        </button>
+                        <button
+                          onClick={() => send({ type: "changeCurrentTurn", playerId: player.id })}
+                          className="rounded-lg bg-slate-800 px-2 py-1.5 text-[10px] font-bold text-slate-300 hover:bg-slate-700"
+                        >
+                          Give turn
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {tab === "Players" && (
           <div className="grid gap-5 lg:grid-cols-2">
             <Panel title="Player controls">
@@ -306,14 +460,22 @@ export default function OperatorPage() {
                 <div key={property.spaceIndex} className="rounded-xl border border-slate-800 bg-slate-950 p-3">
                   <div className="mb-3 flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-bold">{property.name}</p>
-                      <p className="text-xs text-slate-500">Owner: {state.players[property.ownerId]?.name ?? property.ownerId}</p>
+                      <p className="font-bold">
+                        {property.name}
+                        {property.mortgaged && (
+                          <span className="ml-2 text-[10px] font-bold text-orange-400 rounded-full bg-orange-950/60 px-1.5 py-0.5">MTG</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        Owner: {state.players[property.ownerId]?.name ?? property.ownerId}
+                        {property.hasHotel ? " · Hotel" : property.houseCount > 0 ? ` · ${property.houseCount} house(s)` : ""}
+                      </p>
                     </div>
                     <DangerButton onClick={() => send({ type: "removeProperty", spaceIndex: property.spaceIndex })}>
                       Remove
                     </DangerButton>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="mb-2 flex gap-2">
                     <div className="flex-1">
                       <PlayerSelect players={players} value={playerId} onChange={setPlayerId} />
                     </div>
@@ -322,6 +484,17 @@ export default function OperatorPage() {
                     })}>
                       Change owner
                     </ActionButton>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {property.mortgaged ? (
+                      <ActionButton onClick={() => send({ type: "setMortgaged", spaceIndex: property.spaceIndex, mortgaged: false })}>
+                        Unmortgage
+                      </ActionButton>
+                    ) : (
+                      <DangerButton onClick={() => send({ type: "setMortgaged", spaceIndex: property.spaceIndex, mortgaged: true })}>
+                        Mortgage
+                      </DangerButton>
+                    )}
                   </div>
                 </div>
               ))}
@@ -583,6 +756,15 @@ export default function OperatorPage() {
 
 const inputClass =
   "w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2.5 text-sm text-white outline-none focus:border-amber-400";
+
+function StatBadge({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3">
+      <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{label}</p>
+      <p className="mt-0.5 font-black capitalize text-white">{value}</p>
+    </div>
+  );
+}
 
 function Panel({ title, children }: { title: string; children: React.ReactNode }) {
   return (

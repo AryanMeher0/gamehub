@@ -18,9 +18,18 @@ import PropertyDetailDrawer from "@/components/game/PropertyDetailDrawer";
 export default function GamePage() {
   const { roomCode } = useParams<{ roomCode: string }>();
   const router = useRouter();
-  const [state, setState] = useState<GameState | null>(null);
+  const LOCAL_SAVE_KEY = `gamehub:save:${roomCode}`;
+  const [state, setState] = useState<GameState | null>(() => {
+    // Seed from localStorage so the last known state shows instantly before the socket responds
+    if (typeof window === "undefined") return null;
+    try {
+      const raw = localStorage.getItem(`gamehub:save:${roomCode}`);
+      return raw ? (JSON.parse(raw) as GameState) : null;
+    } catch { return null; }
+  });
   const [socketId, setSocketId] = useState("");
   const [error, setError] = useState("");
+  const [disconnected, setDisconnected] = useState(false);
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [incomingTrade, setIncomingTrade] = useState<TradeOffer | null>(null);
   const [selectedSpace, setSelectedSpace] = useState<number | null>(null);
@@ -33,11 +42,20 @@ export default function GamePage() {
     function onConnect() {
       setSocketId(socket.id ?? "");
       if (socket.id) sessionStorage.setItem(`gamehub:socket:${roomCode}`, socket.id);
+      setDisconnected(false);
+      socket.emit("game:getState", { roomCode });
+    }
+
+    function onDisconnect() {
+      setDisconnected(true);
     }
 
     function onStateUpdated(s: GameState) {
       setState(s);
       setError("");
+      setDisconnected(false);
+      // Persist to localStorage so the last-known state survives a page refresh or server restart
+      try { localStorage.setItem(LOCAL_SAVE_KEY, JSON.stringify(s)); } catch { /* quota exceeded */ }
     }
 
     function onError(data: { message: string }) {
@@ -59,6 +77,7 @@ export default function GamePage() {
     }
 
     socket.on("connect", onConnect);
+    socket.on("disconnect", onDisconnect);
     socket.on("game:stateUpdated", onStateUpdated);
     socket.on("game:error", onError);
     socket.on("game:tradeUpdated", onTradeUpdated);
@@ -67,6 +86,7 @@ export default function GamePage() {
 
     return () => {
       socket.off("connect", onConnect);
+      socket.off("disconnect", onDisconnect);
       socket.off("game:stateUpdated", onStateUpdated);
       socket.off("game:error", onError);
       socket.off("game:tradeUpdated", onTradeUpdated);
@@ -97,6 +117,8 @@ export default function GamePage() {
     requestedCash: number;
     offeredPropertyIndices: number[];
     requestedPropertyIndices: number[];
+    offeredGojfCount: number;
+    requestedGojfCount: number;
   }) {
     getSocket().emit("game:createTrade", { roomCode, ...payload });
     setShowTradeModal(false);
@@ -120,7 +142,10 @@ export default function GamePage() {
   if (!state) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-gray-950 text-white">
-        <p className="animate-pulse text-gray-400">Loading game...</p>
+        <div className="text-center">
+          <p className="animate-pulse text-gray-400">Loading game...</p>
+          <p className="mt-2 text-xs text-gray-600">Connecting to server</p>
+        </div>
       </main>
     );
   }
@@ -135,15 +160,28 @@ export default function GamePage() {
             {roomCode}
           </span>
         </div>
-        {error && (
+        {disconnected && (
+          <span className="animate-pulse rounded-lg bg-orange-900/60 px-3 py-1 text-xs font-bold text-orange-300">
+            Disconnected — reconnecting… (last state saved locally)
+          </span>
+        )}
+        {!disconnected && error && (
           <span className="rounded-lg bg-red-900/50 px-3 py-1 text-xs text-red-400">{error}</span>
         )}
-        <button
-          onClick={handleLeave}
-          className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
-        >
-          Leave
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push(`/operator/${roomCode}`)}
+            className="rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-400 hover:bg-amber-950/70 transition-colors"
+          >
+            Operator Panel
+          </button>
+          <button
+            onClick={handleLeave}
+            className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
+          >
+            Leave
+          </button>
+        </div>
       </header>
 
       {/* Body */}

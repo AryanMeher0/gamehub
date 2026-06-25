@@ -105,16 +105,16 @@ export const CHANCE_CARDS: Card[] = [
     effect: { type: "move_to", position: 5 },
   },
   {
-    id: "ch_chairman",
-    title: "Elected Gram Panchayat Head",
-    description: "Congratulations! As the newly elected head, pay each player ₹50.",
-    effect: { type: "pay_each_player", amount: 50 },
+    id: "ch_utility2",
+    title: "Advance to Nearest Utility",
+    description: "Advance token to nearest Utility. If owned, roll dice and pay 10× the amount.",
+    effect: { type: "advance_nearest_utility" },
   },
   {
-    id: "ch_loan",
-    title: "Housing Loan Approved",
-    description: "Your PMAY housing loan matures. Collect ₹150.",
-    effect: { type: "receive_money", amount: 150 },
+    id: "ch_reading2",
+    title: "Take a Trip on Northern Railway",
+    description: "Take a trip on the Northern Railway. If you pass GO, collect ₹200.",
+    effect: { type: "move_to", position: 5 },
   },
 ];
 
@@ -156,10 +156,10 @@ export const COMMUNITY_CHEST_CARDS: Card[] = [
     effect: { type: "go_to_jail" },
   },
   {
-    id: "cc_opera",
-    title: "IPL After-Party",
-    description: "You hosted the after-party! Collect ₹50 from every player for the tickets.",
-    effect: { type: "collect_from_each_player", amount: 50 },
+    id: "cc_inherit",
+    title: "You Inherit ₹100",
+    description: "A distant relative remembered you in their will. Collect ₹100.",
+    effect: { type: "receive_money", amount: 100 },
   },
   {
     id: "cc_holiday",
