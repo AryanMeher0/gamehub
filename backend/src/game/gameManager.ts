@@ -44,6 +44,11 @@ function createGame(roomCode: string, playerIds: string[]): GameState {
     winnerName: null,
     rankings: [],
     trades: {},
+    auctionState: null,
+    housesRemaining: 32,
+    hotelsRemaining: 12,
+    chanceDeck: [],
+    communityDeck: [],
   };
 
   return games[roomCode];
@@ -207,6 +212,7 @@ function buyProperty(
     type: space.type,
     houseCount: 0,
     hasHotel: false,
+    mortgaged: false,
   };
 
   state.properties[player.position] = ownership;

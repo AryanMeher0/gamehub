@@ -31,6 +31,7 @@ export interface PropertyOwnership {
   type: SpaceType;
   houseCount: number;
   hasHotel: boolean;
+  mortgaged: boolean;
 }
 
 export interface GamePlayer {
@@ -52,6 +53,7 @@ export interface PlayerRanking {
   color: string;
   cash: number;
   propertyCount: number;
+  netWorth: number;
   rank: number;
 }
 
@@ -80,12 +82,19 @@ export interface TradeOffer {
   status: "pending" | "accepted" | "rejected";
 }
 
+export interface AuctionState {
+  spaceIndex: number;
+  highestBid: number;
+  highestBidderId: string | null;
+  passedPlayerIds: string[];
+}
+
 export interface GameState {
   roomCode: string;
   players: Record<string, GamePlayer>;
   turnOrder: string[];
   currentTurnIndex: number;
-  phase: "waiting" | "rolling" | "buying" | "card" | "ended" | "gameover";
+  phase: "waiting" | "rolling" | "buying" | "card" | "ended" | "gameover" | "auction";
   lastRoll: DiceRoll | null;
   properties: Record<number, PropertyOwnership>;
   log: string[];
@@ -95,4 +104,9 @@ export interface GameState {
   winnerName: string | null;
   rankings: PlayerRanking[];
   trades: Record<string, TradeOffer>;
+  auctionState: AuctionState | null;
+  housesRemaining: number;
+  hotelsRemaining: number;
+  chanceDeck: string[];
+  communityDeck: string[];
 }

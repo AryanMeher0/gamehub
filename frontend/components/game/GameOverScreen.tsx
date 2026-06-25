@@ -49,8 +49,8 @@ export default function GameOverScreen({ state, socketId, onLeave }: Props) {
                 )}
               </span>
               <div className="flex flex-col items-end gap-0.5">
-                <span className="text-sm font-bold text-green-400">${r.cash}</span>
-                <span className="text-[10px] text-gray-500">{r.propertyCount} propert{r.propertyCount === 1 ? "y" : "ies"}</span>
+                <span className="text-sm font-bold text-green-400">${r.netWorth ?? r.cash}</span>
+                <span className="text-[10px] text-gray-500">${r.cash} cash · {r.propertyCount} prop{r.propertyCount !== 1 ? "s" : ""}</span>
               </div>
             </div>
           ))}

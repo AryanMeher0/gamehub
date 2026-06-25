@@ -3,7 +3,6 @@
 import { GameState, GamePlayer, PropertyOwnership } from "@/types/game";
 import { PROPERTY_COLORS } from "@/lib/board";
 
-// Color groups mirrored from backend — used only for eligibility check
 const COLOR_GROUPS: Record<string, number[]> = {
   brown:    [1, 3],
   lightblue:[6, 8, 9],
@@ -19,16 +18,41 @@ function ownsFullGroup(color: string, ownerId: string, properties: Record<number
   return (COLOR_GROUPS[color] ?? []).every((i) => properties[i]?.ownerId === ownerId);
 }
 
+function houseCostFor(color: string): number {
+  const costs: Record<string, number> = {
+    brown: 50, lightblue: 50, pink: 100, orange: 100,
+    red: 150, yellow: 150, green: 200, darkblue: 200,
+  };
+  return costs[color] ?? 100;
+}
+
 interface Props {
   state: GameState;
   socketId: string;
   onRoll: () => void;
   onEndTurn: () => void;
   onBuyBuilding: (spaceIndex: number) => void;
+  onSellBuilding: (spaceIndex: number) => void;
+  onMortgage: (spaceIndex: number) => void;
+  onUnmortgage: (spaceIndex: number) => void;
+  onPayJailFine: () => void;
+  onUseGojf: () => void;
   onOpenTrade: () => void;
 }
 
-export default function PlayerPanel({ state, socketId, onRoll, onEndTurn, onBuyBuilding, onOpenTrade }: Props) {
+export default function PlayerPanel({
+  state,
+  socketId,
+  onRoll,
+  onEndTurn,
+  onBuyBuilding,
+  onSellBuilding,
+  onMortgage,
+  onUnmortgage,
+  onPayJailFine,
+  onUseGojf,
+  onOpenTrade,
+}: Props) {
   const currentPlayerId = state.turnOrder[state.currentTurnIndex];
   const isMyTurn = currentPlayerId === socketId;
   const players = Object.values(state.players);
@@ -37,17 +61,46 @@ export default function PlayerPanel({ state, socketId, onRoll, onEndTurn, onBuyB
   const canTrade = !myPlayer?.bankrupt && !state.gameOver &&
     Object.values(state.players).some((p) => p.id !== socketId && !p.bankrupt);
 
-  // Properties this player owns that are eligible to build on
-  const buildable = isMyTurn && state.phase === "ended"
+  const isRollingPhase = isMyTurn && state.phase === "rolling";
+  const isEndedPhase = isMyTurn && state.phase === "ended";
+  const inJail = myPlayer?.inJail ?? false;
+
+  // Buildable properties (even-building rule shown via visual check)
+  const buildable = isEndedPhase
     ? Object.values(state.properties).filter(
         (p) =>
           p.ownerId === socketId &&
           p.type === "property" &&
           p.color &&
           !p.hasHotel &&
+          !p.mortgaged &&
           ownsFullGroup(p.color, socketId, state.properties)
       )
     : [];
+
+  // Sellable buildings (any time for cash)
+  const sellable = Object.values(state.properties).filter(
+    (p) =>
+      p.ownerId === socketId &&
+      p.type === "property" &&
+      (p.hasHotel || p.houseCount > 0)
+  );
+
+  // Mortgageable properties (no buildings, not mortgaged)
+  const mortgageable = Object.values(state.properties).filter(
+    (p) =>
+      p.ownerId === socketId &&
+      !p.mortgaged &&
+      !p.hasHotel &&
+      p.houseCount === 0
+  );
+
+  // Unmortgageable properties
+  const unmortgageable = Object.values(state.properties).filter(
+    (p) => p.ownerId === socketId && p.mortgaged
+  );
+
+  const hasAnyPropertyActions = sellable.length > 0 || mortgageable.length > 0 || unmortgageable.length > 0;
 
   return (
     <div className="flex flex-col gap-3">
@@ -88,6 +141,11 @@ export default function PlayerPanel({ state, socketId, onRoll, onEndTurn, onBuyB
                 {p.inJail && !p.bankrupt && (
                   <span className="rounded-full bg-red-900 px-1.5 py-0.5 text-[10px] text-red-400">Jail</span>
                 )}
+                {p.getOutOfJailFreeCards > 0 && !p.bankrupt && (
+                  <span className="rounded-full bg-green-900 px-1.5 py-0.5 text-[10px] text-green-400">
+                    🃏×{p.getOutOfJailFreeCards}
+                  </span>
+                )}
                 {p.bankrupt && (
                   <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-500">Bankrupt</span>
                 )}
@@ -96,6 +154,13 @@ export default function PlayerPanel({ state, socketId, onRoll, onEndTurn, onBuyB
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Supply tracker */}
+      <div className="flex gap-2 rounded-xl border border-gray-700 bg-gray-900 px-3 py-2 text-xs text-gray-400">
+        <span>🏠 {state.housesRemaining} left</span>
+        <span className="mx-1 text-gray-700">|</span>
+        <span>🏨 {state.hotelsRemaining} left</span>
       </div>
 
       {/* Turn indicator */}
@@ -109,14 +174,43 @@ export default function PlayerPanel({ state, socketId, onRoll, onEndTurn, onBuyB
         )}
       </div>
 
-      {/* Build section — only shown to active player after rolling */}
+      {/* Jail controls */}
+      {isRollingPhase && inJail && myPlayer && (
+        <div className="rounded-xl border border-red-900 bg-red-950/30 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-red-400">In Jail</p>
+          <div className="flex flex-col gap-1.5">
+            {myPlayer.getOutOfJailFreeCards > 0 && (
+              <button
+                onClick={onUseGojf}
+                className="w-full rounded-xl bg-green-700 py-2 text-xs font-bold hover:bg-green-600 active:scale-95 transition-all"
+              >
+                Use Get Out of Jail Free Card
+              </button>
+            )}
+            {myPlayer.cash >= 50 && (
+              <button
+                onClick={onPayJailFine}
+                className="w-full rounded-xl bg-yellow-700 py-2 text-xs font-bold hover:bg-yellow-600 active:scale-95 transition-all"
+              >
+                Pay $50 Fine
+              </button>
+            )}
+            <p className="text-center text-xs text-gray-500">
+              Or roll doubles to escape (turn {myPlayer.jailTurns}/3)
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Build section */}
       {buildable.length > 0 && (
         <div className="rounded-xl border border-gray-700 bg-gray-900 p-3">
           <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-500">Build</p>
           <div className="flex flex-col gap-1.5">
             {buildable.map((p: PropertyOwnership) => {
               const colorHex = p.color ? PROPERTY_COLORS[p.color] : "#374151";
-              const label = p.houseCount < 4 ? `House ($${houseCostFor(p.color!)})` : `Hotel ($${houseCostFor(p.color!)})`;
+              const cost = houseCostFor(p.color!);
+              const label = p.houseCount < 4 ? `House ($${cost})` : `Hotel ($${cost})`;
               return (
                 <div key={p.spaceIndex} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
@@ -139,8 +233,74 @@ export default function PlayerPanel({ state, socketId, onRoll, onEndTurn, onBuyB
         </div>
       )}
 
-      {/* Actions */}
-      {isMyTurn && state.phase !== "gameover" && (
+      {/* Property management (sell / mortgage / unmortgage) */}
+      {hasAnyPropertyActions && myPlayer && !myPlayer.bankrupt && (
+        <div className="rounded-xl border border-gray-700 bg-gray-900 p-3">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-500">Properties</p>
+          <div className="flex flex-col gap-1.5">
+            {sellable.map((p: PropertyOwnership) => {
+              const colorHex = p.color ? PROPERTY_COLORS[p.color] : "#374151";
+              const cost = houseCostFor(p.color!);
+              const sellValue = Math.floor(cost / 2);
+              return (
+                <div key={`sell-${p.spaceIndex}`} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: colorHex }} />
+                    <span className="text-xs text-gray-300 truncate">{p.name}</span>
+                    <span className="text-[10px] text-gray-500">
+                      {p.hasHotel ? "🏨" : `${p.houseCount}⌂`}
+                    </span>
+                  </div>
+                  <button
+                    onClick={() => onSellBuilding(p.spaceIndex)}
+                    className="shrink-0 rounded-lg bg-red-800 px-2 py-1 text-[10px] font-bold hover:bg-red-700 active:scale-95 transition-all"
+                  >
+                    Sell +${sellValue}
+                  </button>
+                </div>
+              );
+            })}
+            {mortgageable.map((p: PropertyOwnership) => {
+              const mortgageValue = Math.floor(p.price / 2);
+              return (
+                <div key={`mtg-${p.spaceIndex}`} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-300 truncate">{p.name}</span>
+                  </div>
+                  <button
+                    onClick={() => onMortgage(p.spaceIndex)}
+                    className="shrink-0 rounded-lg bg-orange-800 px-2 py-1 text-[10px] font-bold hover:bg-orange-700 active:scale-95 transition-all"
+                  >
+                    Mortgage +${mortgageValue}
+                  </button>
+                </div>
+              );
+            })}
+            {unmortgageable.map((p: PropertyOwnership) => {
+              const cost = Math.ceil(p.price / 2 * 1.1);
+              const canAfford = (myPlayer?.cash ?? 0) >= cost;
+              return (
+                <div key={`unmtg-${p.spaceIndex}`} className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-gray-500 truncate line-through">{p.name}</span>
+                    <span className="text-[10px] text-orange-500">mortgaged</span>
+                  </div>
+                  <button
+                    onClick={() => onUnmortgage(p.spaceIndex)}
+                    disabled={!canAfford}
+                    className="shrink-0 rounded-lg bg-blue-800 px-2 py-1 text-[10px] font-bold hover:bg-blue-700 disabled:opacity-40 active:scale-95 transition-all"
+                  >
+                    Lift -${cost}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Main actions */}
+      {isMyTurn && state.phase !== "gameover" && state.phase !== "auction" && (
         <div className="flex flex-col gap-2">
           <button
             onClick={onRoll}
@@ -159,7 +319,7 @@ export default function PlayerPanel({ state, socketId, onRoll, onEndTurn, onBuyB
         </div>
       )}
 
-      {/* Trade button — available to any non-bankrupt player whenever there's someone to trade with */}
+      {/* Trade button */}
       {canTrade && state.phase !== "gameover" && (
         <button
           onClick={onOpenTrade}
@@ -170,14 +330,6 @@ export default function PlayerPanel({ state, socketId, onRoll, onEndTurn, onBuyB
       )}
     </div>
   );
-}
-
-function houseCostFor(color: string): number {
-  const costs: Record<string, number> = {
-    brown: 50, lightblue: 50, pink: 100, orange: 100,
-    red: 150, yellow: 150, green: 200, darkblue: 200,
-  };
-  return costs[color] ?? 100;
 }
 
 function Die({ value }: { value: number }) {

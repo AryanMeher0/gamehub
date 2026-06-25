@@ -31,6 +31,7 @@ export interface PropertyOwnership {
   type: SpaceType;
   houseCount: number;
   hasHotel: boolean;
+  mortgaged: boolean;
 }
 
 export interface GamePlayer {
@@ -40,14 +41,11 @@ export interface GamePlayer {
   cash: number;
   inJail: boolean;
   jailTurns: number;
-  /** Used for "3 consecutive doubles" jail rule. */
   consecutiveDoubles: number;
-  /** Number of Get Out of Jail Free cards held by the player. */
   getOutOfJailFreeCards: number;
   color: string;
   bankrupt: boolean;
 }
-
 
 export interface PlayerRanking {
   id: string;
@@ -55,6 +53,7 @@ export interface PlayerRanking {
   color: string;
   cash: number;
   propertyCount: number;
+  netWorth: number;
   rank: number;
 }
 
@@ -83,12 +82,19 @@ export interface TradeOffer {
   status: "pending" | "accepted" | "rejected";
 }
 
+export interface AuctionState {
+  spaceIndex: number;
+  highestBid: number;
+  highestBidderId: string | null;
+  passedPlayerIds: string[];
+}
+
 export interface GameState {
   roomCode: string;
   players: Record<string, GamePlayer>;
   turnOrder: string[];
   currentTurnIndex: number;
-  phase: "waiting" | "rolling" | "buying" | "card" | "ended" | "gameover";
+  phase: "waiting" | "rolling" | "buying" | "card" | "ended" | "gameover" | "auction";
   lastRoll: DiceRoll | null;
   properties: Record<number, PropertyOwnership>;
   log: string[];
@@ -98,4 +104,9 @@ export interface GameState {
   winnerName: string | null;
   rankings: PlayerRanking[];
   trades: Record<string, TradeOffer>;
+  auctionState: AuctionState | null;
+  housesRemaining: number;
+  hotelsRemaining: number;
+  chanceDeck: string[];
+  communityDeck: string[];
 }

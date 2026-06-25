@@ -97,6 +97,11 @@ export default function GamePage() {
             onRoll={handleRoll}
             onEndTurn={handleEndTurn}
             onBuyBuilding={() => {}}
+            onSellBuilding={() => {}}
+            onMortgage={() => {}}
+            onUnmortgage={() => {}}
+            onPayJailFine={() => {}}
+            onUseGojf={() => {}}
             onOpenTrade={() => {}}
           />
           <GameLog log={state.log} />

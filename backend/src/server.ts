@@ -9,8 +9,9 @@ import {
 } from "./rooms/roomManager";
 import {
   createGame, processRoll, resolveCard, buyProperty, skipProperty,
-  endTurn, buyBuilding, handlePlayerDisconnect,
-  reassignPlayerId, loadSavedGame, persistGame, getGame,
+  auctionBid, auctionPass, endTurn, buyBuilding, sellBuilding,
+  payJailFine, useGojf, mortgageProperty, unmortgageProperty,
+  handlePlayerDisconnect, reassignPlayerId, loadSavedGame, persistGame, getGame,
 } from "./games/monopoly/gameManager";
 import { createTrade, acceptTrade, rejectTrade } from "./games/monopoly/tradeManager";
 import {
@@ -340,6 +341,62 @@ io.on("connection", (socket) => {
   // ── GAME: SKIP PROPERTY ───────────────────────────────────────────────────
   socket.on("game:skipProperty", ({ roomCode }: { roomCode: string }) => {
     const { state, error } = skipProperty(roomCode, socket.id);
+    if (error) { socket.emit("game:error", { message: error }); return; }
+    persistGame(roomCode);
+    io.to(roomCode).emit("game:stateUpdated", state);
+  });
+
+  // ── GAME: AUCTION BID ─────────────────────────────────────────────────────
+  socket.on("game:auctionBid", ({ roomCode, amount }: { roomCode: string; amount: number }) => {
+    const { state, error } = auctionBid(roomCode, socket.id, amount);
+    if (error) { socket.emit("game:error", { message: error }); return; }
+    persistGame(roomCode);
+    io.to(roomCode).emit("game:stateUpdated", state);
+  });
+
+  // ── GAME: AUCTION PASS ────────────────────────────────────────────────────
+  socket.on("game:auctionPass", ({ roomCode }: { roomCode: string }) => {
+    const { state, error } = auctionPass(roomCode, socket.id);
+    if (error) { socket.emit("game:error", { message: error }); return; }
+    persistGame(roomCode);
+    io.to(roomCode).emit("game:stateUpdated", state);
+  });
+
+  // ── GAME: PAY JAIL FINE ───────────────────────────────────────────────────
+  socket.on("game:payJailFine", ({ roomCode }: { roomCode: string }) => {
+    const { state, error } = payJailFine(roomCode, socket.id);
+    if (error) { socket.emit("game:error", { message: error }); return; }
+    persistGame(roomCode);
+    io.to(roomCode).emit("game:stateUpdated", state);
+  });
+
+  // ── GAME: USE GOJF CARD ───────────────────────────────────────────────────
+  socket.on("game:useGojf", ({ roomCode }: { roomCode: string }) => {
+    const { state, error } = useGojf(roomCode, socket.id);
+    if (error) { socket.emit("game:error", { message: error }); return; }
+    persistGame(roomCode);
+    io.to(roomCode).emit("game:stateUpdated", state);
+  });
+
+  // ── GAME: SELL BUILDING ───────────────────────────────────────────────────
+  socket.on("game:sellBuilding", ({ roomCode, spaceIndex }: { roomCode: string; spaceIndex: number }) => {
+    const { state, error } = sellBuilding(roomCode, socket.id, spaceIndex);
+    if (error) { socket.emit("game:error", { message: error }); return; }
+    persistGame(roomCode);
+    io.to(roomCode).emit("game:stateUpdated", state);
+  });
+
+  // ── GAME: MORTGAGE PROPERTY ───────────────────────────────────────────────
+  socket.on("game:mortgage", ({ roomCode, spaceIndex }: { roomCode: string; spaceIndex: number }) => {
+    const { state, error } = mortgageProperty(roomCode, socket.id, spaceIndex);
+    if (error) { socket.emit("game:error", { message: error }); return; }
+    persistGame(roomCode);
+    io.to(roomCode).emit("game:stateUpdated", state);
+  });
+
+  // ── GAME: UNMORTGAGE PROPERTY ─────────────────────────────────────────────
+  socket.on("game:unmortgage", ({ roomCode, spaceIndex }: { roomCode: string; spaceIndex: number }) => {
+    const { state, error } = unmortgageProperty(roomCode, socket.id, spaceIndex);
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);

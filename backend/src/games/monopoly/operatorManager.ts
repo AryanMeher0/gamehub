@@ -22,7 +22,8 @@ export type OperatorAction =
   | { type: "giveGojf"; playerId: string }
   | { type: "forceDiceRoll"; die1: number; die2: number }
   | { type: "endTurn" }
-  | { type: "changeCurrentTurn"; playerId: string };
+  | { type: "changeCurrentTurn"; playerId: string }
+  | { type: "setMortgaged"; spaceIndex: number; mortgaged: boolean };
 
 export interface OperatorResult {
   state: GameState;
@@ -58,6 +59,7 @@ function propertyFromBoard(spaceIndex: number, ownerId: string): PropertyOwnersh
     type: space.type,
     houseCount: 0,
     hasHotel: false,
+    mortgaged: false,
   };
 }
 
@@ -248,6 +250,12 @@ export function applyOperatorAction(
       state.lastRoll = null;
       state.activeCard = null;
       return finish(state, `Changed the current turn to ${player.name}.`);
+    }
+    case "setMortgaged": {
+      const property = ownedProperty(state, action.spaceIndex);
+      if (!property) return fail(state, "Property is not owned");
+      property.mortgaged = action.mortgaged;
+      return finish(state, `Set ${property.name} mortgage status to ${action.mortgaged}.`);
     }
   }
 }

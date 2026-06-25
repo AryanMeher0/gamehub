@@ -12,6 +12,7 @@ import CardModal from "@/components/game/CardModal";
 import GameOverScreen from "@/components/game/GameOverScreen";
 import TradeModal from "@/components/game/TradeModal";
 import IncomingTradeModal from "@/components/game/IncomingTradeModal";
+import AuctionModal from "@/components/game/AuctionModal";
 
 export default function GamePage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -47,11 +48,9 @@ export default function GamePage() {
         if (!prev) return prev;
         return { ...prev, trades: { ...prev.trades, [trade.id]: trade } };
       });
-      // Show incoming modal when this socket is the recipient of a new pending trade
       if (trade.status === "pending" && trade.toId === (getSocket().id ?? "")) {
         setIncomingTrade(trade);
       }
-      // Clear incoming modal once resolved
       if (trade.status !== "pending") {
         setIncomingTrade((prev) => (prev?.id === trade.id ? null : prev));
       }
@@ -72,14 +71,23 @@ export default function GamePage() {
     };
   }, [roomCode]);
 
-  function handleRoll()        { getSocket().emit("game:roll",          { roomCode }); }
-  function handleEndTurn()     { getSocket().emit("game:endTurn",       { roomCode }); }
-  function handleBuy()         { getSocket().emit("game:buyProperty",   { roomCode }); }
-  function handleSkip()        { getSocket().emit("game:skipProperty",  { roomCode }); }
-  function handleResolveCard() { getSocket().emit("game:resolveCard",   { roomCode }); }
-  function handleBuyBuilding(spaceIndex: number) {
-    getSocket().emit("game:buyBuilding", { roomCode, spaceIndex });
+  function emit(event: string, payload?: Record<string, unknown>) {
+    getSocket().emit(event, { roomCode, ...payload });
   }
+
+  function handleRoll()              { emit("game:roll"); }
+  function handleEndTurn()           { emit("game:endTurn"); }
+  function handleBuy()               { emit("game:buyProperty"); }
+  function handleSkip()              { emit("game:skipProperty"); }
+  function handleResolveCard()       { emit("game:resolveCard"); }
+  function handlePayJailFine()       { emit("game:payJailFine"); }
+  function handleUseGojf()           { emit("game:useGojf"); }
+  function handleBuyBuilding(i: number)  { emit("game:buyBuilding",  { spaceIndex: i }); }
+  function handleSellBuilding(i: number) { emit("game:sellBuilding", { spaceIndex: i }); }
+  function handleMortgage(i: number)     { emit("game:mortgage",     { spaceIndex: i }); }
+  function handleUnmortgage(i: number)   { emit("game:unmortgage",   { spaceIndex: i }); }
+  function handleAuctionBid(amount: number) { emit("game:auctionBid", { amount }); }
+  function handleAuctionPass()            { emit("game:auctionPass"); }
 
   function handleSendTrade(payload: {
     toId: string;
@@ -93,12 +101,12 @@ export default function GamePage() {
   }
 
   function handleAcceptTrade(tradeId: string) {
-    getSocket().emit("game:acceptTrade", { roomCode, tradeId });
+    emit("game:acceptTrade", { tradeId });
     setIncomingTrade(null);
   }
 
   function handleRejectTrade(tradeId: string) {
-    getSocket().emit("game:rejectTrade", { roomCode, tradeId });
+    emit("game:rejectTrade", { tradeId });
     setIncomingTrade(null);
   }
 
@@ -149,13 +157,18 @@ export default function GamePage() {
             onRoll={handleRoll}
             onEndTurn={handleEndTurn}
             onBuyBuilding={handleBuyBuilding}
+            onSellBuilding={handleSellBuilding}
+            onMortgage={handleMortgage}
+            onUnmortgage={handleUnmortgage}
+            onPayJailFine={handlePayJailFine}
+            onUseGojf={handleUseGojf}
             onOpenTrade={() => setShowTradeModal(true)}
           />
           <GameLog log={state.log} />
         </div>
       </div>
 
-      {/* Property purchase modal — shown to all players when phase is buying */}
+      {/* Property purchase modal */}
       {state.phase === "buying" && (
         <PropertyModal
           state={state}
@@ -165,7 +178,7 @@ export default function GamePage() {
         />
       )}
 
-      {/* Card modal — shown to all players when phase is card */}
+      {/* Card modal */}
       {state.phase === "card" && state.activeCard && (
         <CardModal
           card={state.activeCard}
@@ -175,7 +188,17 @@ export default function GamePage() {
         />
       )}
 
-      {/* Trade offer modal (initiator) */}
+      {/* Auction modal */}
+      {state.phase === "auction" && state.auctionState && (
+        <AuctionModal
+          state={state}
+          socketId={socketId}
+          onBid={handleAuctionBid}
+          onPass={handleAuctionPass}
+        />
+      )}
+
+      {/* Trade modals */}
       {showTradeModal && !state.gameOver && (
         <TradeModal
           state={state}
@@ -185,7 +208,6 @@ export default function GamePage() {
         />
       )}
 
-      {/* Incoming trade modal (recipient) */}
       {incomingTrade && state.trades[incomingTrade.id]?.status === "pending" && (
         <IncomingTradeModal
           trade={incomingTrade}
@@ -195,7 +217,7 @@ export default function GamePage() {
         />
       )}
 
-      {/* Game over overlay */}
+      {/* Game over */}
       {state.gameOver && (
         <GameOverScreen
           state={state}

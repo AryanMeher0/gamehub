@@ -1,3 +1,6 @@
+// When a hotel is sold back, this many house tokens are returned to bank supply
+export const HOTEL_RETURN_HOUSES = 4;
+
 // House cost to buy per color group
 export const HOUSE_PRICE: Record<string, number> = {
   brown:    50,
