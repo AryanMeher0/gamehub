@@ -6,8 +6,8 @@ const SHAPES: CardShape[] = ["flower", "lightning", "star", "drop"];
 export function buildDeck(): Stack5Card[] {
   const cards: Stack5Card[] = [];
 
-  // 3 copies of every color-shape combination (48 standard cards)
-  for (let copy = 0; copy < 3; copy++) {
+  // 5 copies of every color-shape combination (80 standard cards)
+  for (let copy = 0; copy < 5; copy++) {
     for (const color of COLORS) {
       for (const shape of SHAPES) {
         cards.push({ id: `std_${color}_${shape}_${copy}`, type: "standard", color, shape });
@@ -15,13 +15,13 @@ export function buildDeck(): Stack5Card[] {
     }
   }
 
-  // 4 wild cards
-  for (let i = 0; i < 4; i++) {
+  // 8 wild cards
+  for (let i = 0; i < 8; i++) {
     cards.push({ id: `wild_${i}`, type: "wild", color: null, shape: null });
   }
 
-  // 4 skip cards
-  for (let i = 0; i < 4; i++) {
+  // 6 skip cards
+  for (let i = 0; i < 6; i++) {
     cards.push({ id: `skip_${i}`, type: "skip", color: null, shape: null });
   }
 

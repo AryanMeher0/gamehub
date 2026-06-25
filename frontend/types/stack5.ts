@@ -43,8 +43,11 @@ export interface Stack5State {
   drawDeck: Stack5Card[];
   discardPile: Stack5Card[];
   targetScore: number;
+  turnTimerSeconds: number;
+  turnStartedAt: number;
   gameOver: boolean;
   winnerId: string | null;
   winnerName: string | null;
   log: string[];
+  hostId: string;
 }

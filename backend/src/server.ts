@@ -18,7 +18,11 @@ import {
 import {
   createGame as s5Create, drawCard as s5Draw, playCard as s5Play,
   tradeForMaster as s5Trade, secure as s5Secure, steal as s5Steal,
-  endTurn as s5EndTurn, reassignPlayerId as s5Reassign, getGame as s5Get,
+  endTurn as s5EndTurn, forceAdvanceTurn as s5ForceAdvance,
+  reassignPlayerId as s5Reassign, getGame as s5Get,
+  saveHistory as s5SaveHistory, undoAction as s5Undo,
+  operatorForceNextTurn as s5OpForceNext, operatorGiveMC as s5OpGiveMC,
+  operatorClearStack as s5OpClearStack, operatorEndGame as s5OpEndGame,
   PlayCardInput,
 } from "./games/stack5/gameManager";
 import { CardColor, CardShape } from "./games/stack5/types";
@@ -47,6 +51,25 @@ const io = new Server(httpServer, {
 });
 
 initBotScheduler(io);
+
+// ── Stack5 turn timers ────────────────────────────────────────────────────────
+const s5Timers: Record<string, ReturnType<typeof setTimeout>> = {};
+
+function s5ClearTimer(roomCode: string) {
+  if (s5Timers[roomCode]) { clearTimeout(s5Timers[roomCode]); delete s5Timers[roomCode]; }
+}
+
+function s5StartTimer(roomCode: string) {
+  const state = s5Get(roomCode);
+  if (!state || state.gameOver || state.turnTimerSeconds <= 0) return;
+  s5ClearTimer(roomCode);
+  s5Timers[roomCode] = setTimeout(() => {
+    const { state: next, error } = s5ForceAdvance(roomCode);
+    if (error || !next) return;
+    io.to(roomCode).emit("stack5:stateUpdated", next);
+    s5StartTimer(roomCode);
+  }, state.turnTimerSeconds * 1000);
+}
 
 const PORT = process.env.PORT || 4000;
 
@@ -500,8 +523,8 @@ io.on("connection", (socket) => {
 
   // ── STACK5: CONFIGURE ────────────────────────────────────────────────────
   socket.on("stack5:configure", ({
-    roomCode, targetScore, startingMasterCards,
-  }: { roomCode: string; targetScore: number; startingMasterCards: number }) => {
+    roomCode, targetScore, startingMasterCards, turnTimerSeconds,
+  }: { roomCode: string; targetScore: number; startingMasterCards: number; turnTimerSeconds?: number }) => {
     const rc = roomCode.toUpperCase();
     const room = getRoom(rc);
     if (!room || room.host !== socket.id) {
@@ -512,8 +535,10 @@ io.on("connection", (socket) => {
       socket.emit("stack5:error", { message: "Invalid configuration" });
       return;
     }
-    const state = s5Create(rc, room.players, targetScore, startingMasterCards);
+    const timer = [0, 15, 30, 60].includes(turnTimerSeconds ?? 0) ? (turnTimerSeconds ?? 0) : 0;
+    const state = s5Create(rc, room.players, targetScore, startingMasterCards, timer, socket.id);
     io.to(rc).emit("stack5:stateUpdated", state);
+    s5StartTimer(rc);
   });
 
   // ── STACK5: GET STATE ─────────────────────────────────────────────────────
@@ -525,9 +550,11 @@ io.on("connection", (socket) => {
   // ── STACK5: DRAW CARD ─────────────────────────────────────────────────────
   socket.on("stack5:drawCard", ({ roomCode }: { roomCode: string }) => {
     const rc = roomCode.toUpperCase();
+    s5SaveHistory(rc);
     const { state, error } = s5Draw(rc, socket.id);
     if (error) { socket.emit("stack5:error", { message: error }); return; }
     io.to(rc).emit("stack5:stateUpdated", state);
+    s5ClearTimer(rc); s5StartTimer(rc);
   });
 
   // ── STACK5: PLAY CARD ─────────────────────────────────────────────────────
@@ -540,6 +567,7 @@ io.on("connection", (socket) => {
     targetPlayerId?: string;
   }) => {
     const rc = payload.roomCode.toUpperCase();
+    s5SaveHistory(rc);
     const input: PlayCardInput = {
       cardId: payload.cardId,
       slotIndex: payload.slotIndex,
@@ -550,22 +578,27 @@ io.on("connection", (socket) => {
     const { state, error } = s5Play(rc, socket.id, input);
     if (error) { socket.emit("stack5:error", { message: error }); return; }
     io.to(rc).emit("stack5:stateUpdated", state);
+    s5ClearTimer(rc); s5StartTimer(rc);
   });
 
   // ── STACK5: TRADE FOR MASTER ──────────────────────────────────────────────
   socket.on("stack5:tradeForMaster", ({ roomCode, cardIds }: { roomCode: string; cardIds: string[] }) => {
     const rc = roomCode.toUpperCase();
+    s5SaveHistory(rc);
     const { state, error } = s5Trade(rc, socket.id, cardIds);
     if (error) { socket.emit("stack5:error", { message: error }); return; }
     io.to(rc).emit("stack5:stateUpdated", state);
+    s5ClearTimer(rc); s5StartTimer(rc);
   });
 
   // ── STACK5: SECURE ────────────────────────────────────────────────────────
   socket.on("stack5:secure", ({ roomCode, slotIndex }: { roomCode: string; slotIndex: number }) => {
     const rc = roomCode.toUpperCase();
+    s5SaveHistory(rc);
     const { state, error } = s5Secure(rc, socket.id, slotIndex);
     if (error) { socket.emit("stack5:error", { message: error }); return; }
     io.to(rc).emit("stack5:stateUpdated", state);
+    s5ClearTimer(rc); s5StartTimer(rc);
   });
 
   // ── STACK5: STEAL ─────────────────────────────────────────────────────────
@@ -573,17 +606,77 @@ io.on("connection", (socket) => {
     roomCode, targetPlayerId, targetSlotIndex,
   }: { roomCode: string; targetPlayerId: string; targetSlotIndex: number }) => {
     const rc = roomCode.toUpperCase();
+    s5SaveHistory(rc);
     const { state, error } = s5Steal(rc, socket.id, targetPlayerId, targetSlotIndex);
     if (error) { socket.emit("stack5:error", { message: error }); return; }
     io.to(rc).emit("stack5:stateUpdated", state);
+    s5ClearTimer(rc); s5StartTimer(rc);
   });
 
   // ── STACK5: END TURN ──────────────────────────────────────────────────────
   socket.on("stack5:endTurn", ({ roomCode }: { roomCode: string }) => {
     const rc = roomCode.toUpperCase();
+    s5SaveHistory(rc);
     const { state, error } = s5EndTurn(rc, socket.id);
     if (error) { socket.emit("stack5:error", { message: error }); return; }
     io.to(rc).emit("stack5:stateUpdated", state);
+    s5ClearTimer(rc); s5StartTimer(rc);
+  });
+
+  // ── STACK5: OPERATOR ─────────────────────────────────────────────────────
+  socket.on("stack5:operator:undo", ({ roomCode }: { roomCode: string }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || room.host !== socket.id) { socket.emit("stack5:error", { message: "Host only" }); return; }
+    const { state, error } = s5Undo(rc);
+    if (error && !state) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+    if (error) socket.emit("stack5:error", { message: error });
+    s5ClearTimer(rc); s5StartTimer(rc);
+  });
+
+  socket.on("stack5:operator:forceNextTurn", ({ roomCode }: { roomCode: string }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || room.host !== socket.id) { socket.emit("stack5:error", { message: "Host only" }); return; }
+    const { state, error } = s5OpForceNext(rc);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+    s5ClearTimer(rc); s5StartTimer(rc);
+  });
+
+  socket.on("stack5:operator:giveMC", ({
+    roomCode, targetPlayerId, amount,
+  }: { roomCode: string; targetPlayerId: string; amount: number }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || room.host !== socket.id) { socket.emit("stack5:error", { message: "Host only" }); return; }
+    const { state, error } = s5OpGiveMC(rc, targetPlayerId, amount);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+  });
+
+  socket.on("stack5:operator:clearStack", ({
+    roomCode, targetPlayerId, slotIndex,
+  }: { roomCode: string; targetPlayerId: string; slotIndex: number }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || room.host !== socket.id) { socket.emit("stack5:error", { message: "Host only" }); return; }
+    const { state, error } = s5OpClearStack(rc, targetPlayerId, slotIndex);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+  });
+
+  socket.on("stack5:operator:endGame", ({
+    roomCode, winnerId,
+  }: { roomCode: string; winnerId: string }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || room.host !== socket.id) { socket.emit("stack5:error", { message: "Host only" }); return; }
+    const { state, error } = s5OpEndGame(rc, winnerId);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+    s5ClearTimer(rc);
   });
 
   // ── DISCONNECT ────────────────────────────────────────────────────────────

@@ -5,6 +5,17 @@ const PLAYER_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f59e0b", "#a855f7", "#
 const STARTING_HAND = 5;
 
 const games: Record<string, Stack5State> = {};
+const gameHistories: Record<string, Stack5State[]> = {};
+const MAX_HISTORY = 20;
+
+function saveHistory(roomCode: string): void {
+  const state = games[roomCode];
+  if (!state) return;
+  const history = gameHistories[roomCode] ?? [];
+  history.push(JSON.parse(JSON.stringify(state)) as Stack5State);
+  if (history.length > MAX_HISTORY) history.shift();
+  gameHistories[roomCode] = history;
+}
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -78,8 +89,13 @@ function updateMatchType(stack: Stack5Stack): void {
   for (let i = 1; i < valued.length; i++) {
     const c = effectiveColor(valued[i]);
     const s = effectiveShape(valued[i]);
-    if (fc && c === fc) { stack.matchType = "color"; stack.matchValue = fc; return; }
-    if (fs && s === fs) { stack.matchType = "shape"; stack.matchValue = fs; return; }
+    const matchesColor = fc !== null && c === fc;
+    const matchesShape = fs !== null && s === fs;
+    // Only lock when one dimension matches but not the other.
+    // If both match (same color AND shape), stay ambiguous — the player
+    // can still steer this stack toward either color or shape.
+    if (matchesColor && !matchesShape) { stack.matchType = "color"; stack.matchValue = fc; return; }
+    if (matchesShape && !matchesColor) { stack.matchType = "shape"; stack.matchValue = fs; return; }
   }
 }
 
@@ -112,6 +128,7 @@ function advanceTurn(state: Stack5State): void {
 
   state.currentTurnIndex = next;
   state.actionsRemaining = 2;
+  state.turnStartedAt = Date.now();
 
   const cp = state.players[state.turnOrder[state.currentTurnIndex]];
   if (cp) state.log.push(`${cp.name}'s turn.`);
@@ -139,7 +156,9 @@ function createGame(
   roomCode: string,
   roomPlayers: Record<string, { isBot?: boolean; botType?: string; displayName?: string }>,
   targetScore: number,
-  startingMasterCards: number
+  startingMasterCards: number,
+  turnTimerSeconds = 0,
+  hostId = ""
 ): Stack5State {
   const playerIds = Object.keys(roomPlayers);
   const deck = buildDeck();
@@ -174,6 +193,8 @@ function createGame(
     drawDeck: deck,
     discardPile: [],
     targetScore,
+    turnTimerSeconds,
+    turnStartedAt: Date.now(),
     gameOver: false,
     winnerId: null,
     winnerName: null,
@@ -181,6 +202,7 @@ function createGame(
       `Game started! First to ${targetScore} point(s) wins.`,
       `${players[turnOrder[0]]?.name}'s turn.`,
     ],
+    hostId,
   };
 
   games[roomCode] = state;
@@ -443,6 +465,18 @@ function endTurn(roomCode: string, playerId: string): { state: Stack5State; erro
   return { state };
 }
 
+// ─── forceAdvanceTurn (for timer expiry) ──────────────────────────────────────
+
+function forceAdvanceTurn(roomCode: string): { state: Stack5State; error?: string } {
+  const state = games[roomCode];
+  if (!state) return { state: undefined as unknown as Stack5State, error: "Game not found" };
+  if (state.gameOver) return { state, error: "Game is over" };
+  const cp = getCurrentPlayer(state);
+  state.log.push(`⏰ ${cp?.name ?? "Player"}'s turn timed out!`);
+  advanceTurn(state);
+  return { state };
+}
+
 // ─── reassignPlayerId ─────────────────────────────────────────────────────────
 
 function reassignPlayerId(roomCode: string, oldId: string, newId: string): Stack5State | null {
@@ -458,6 +492,70 @@ function reassignPlayerId(roomCode: string, oldId: string, newId: string): Stack
   return state;
 }
 
+// ─── Operator actions ─────────────────────────────────────────────────────────
+
+function undoAction(roomCode: string): { state: Stack5State; error?: string } {
+  const history = gameHistories[roomCode];
+  if (!history || history.length === 0) {
+    const state = games[roomCode];
+    return { state: state!, error: "Nothing to undo" };
+  }
+  const prev = history.pop()!;
+  games[roomCode] = prev;
+  prev.log.push("↩️ Operator undid the last action.");
+  return { state: prev };
+}
+
+function operatorForceNextTurn(roomCode: string): { state: Stack5State; error?: string } {
+  const state = games[roomCode];
+  if (!state) return { state: undefined as unknown as Stack5State, error: "Game not found" };
+  const cp = getCurrentPlayer(state);
+  state.log.push(`🔧 Operator skipped ${cp?.name ?? "current player"}'s turn.`);
+  advanceTurn(state);
+  return { state };
+}
+
+function operatorGiveMC(
+  roomCode: string, targetPlayerId: string, amount: number
+): { state: Stack5State; error?: string } {
+  const state = games[roomCode];
+  if (!state) return { state: undefined as unknown as Stack5State, error: "Game not found" };
+  const target = state.players[targetPlayerId];
+  if (!target) return { state, error: "Player not found" };
+  target.masterCards = Math.max(0, target.masterCards + amount);
+  state.log.push(`🔧 Operator gave ${target.name} ${amount > 0 ? "+" : ""}${amount} MC (now ${target.masterCards}).`);
+  return { state };
+}
+
+function operatorClearStack(
+  roomCode: string, targetPlayerId: string, slotIndex: number
+): { state: Stack5State; error?: string } {
+  const state = games[roomCode];
+  if (!state) return { state: undefined as unknown as Stack5State, error: "Game not found" };
+  const target = state.players[targetPlayerId];
+  if (!target) return { state, error: "Player not found" };
+  const stack = target.stacks[slotIndex];
+  if (!stack) return { state, error: "Invalid slot" };
+  if (stack.cards.length === 0) return { state, error: "Slot is already empty" };
+  state.discardPile.push(...stack.cards);
+  target.stacks[slotIndex] = { slotIndex, cards: [], matchType: null, matchValue: null, completed: false };
+  state.log.push(`🔧 Operator cleared ${target.name}'s slot ${slotIndex + 1}.`);
+  return { state };
+}
+
+function operatorEndGame(roomCode: string, winnerId: string): { state: Stack5State; error?: string } {
+  const state = games[roomCode];
+  if (!state) return { state: undefined as unknown as Stack5State, error: "Game not found" };
+  const winner = state.players[winnerId];
+  if (!winner) return { state, error: "Player not found" };
+  state.gameOver = true;
+  state.phase = "gameover";
+  state.winnerId = winnerId;
+  state.winnerName = winner.name;
+  state.log.push(`🔧 Operator ended the game. ${winner.name} declared winner.`);
+  return { state };
+}
+
 // ─── Getters ──────────────────────────────────────────────────────────────────
 
 function getGame(roomCode: string): Stack5State | null {
@@ -466,9 +564,12 @@ function getGame(roomCode: string): Stack5State | null {
 
 function deleteGame(roomCode: string): void {
   delete games[roomCode];
+  delete gameHistories[roomCode];
 }
 
 export {
-  createGame, drawCard, playCard, tradeForMaster, secure, steal, endTurn,
-  reassignPlayerId, getGame, deleteGame,
+  createGame, drawCard, playCard, tradeForMaster, secure, steal,
+  endTurn, forceAdvanceTurn, reassignPlayerId, getGame, deleteGame,
+  saveHistory, undoAction, operatorForceNextTurn, operatorGiveMC,
+  operatorClearStack, operatorEndGame,
 };
