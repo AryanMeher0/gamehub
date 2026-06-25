@@ -328,6 +328,9 @@ io.on("connection", (socket) => {
     persistGame(normalizedRoomCode);
     io.to(normalizedRoomCode).emit("game:stateUpdated", result.state);
     socket.emit("operator:result", { message: result.message });
+    if (result.triggerBotScheduler) {
+      scheduleBotActions(normalizedRoomCode, result.state);
+    }
   });
 
   // ── GAME: ROLL DICE ───────────────────────────────────────────────────────

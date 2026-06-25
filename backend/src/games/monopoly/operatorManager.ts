@@ -23,12 +23,21 @@ export type OperatorAction =
   | { type: "forceDiceRoll"; die1: number; die2: number }
   | { type: "endTurn" }
   | { type: "changeCurrentTurn"; playerId: string }
-  | { type: "setMortgaged"; spaceIndex: number; mortgaged: boolean };
+  | { type: "setMortgaged"; spaceIndex: number; mortgaged: boolean }
+  // New actions
+  | { type: "renamePlayer"; playerId: string; name: string }
+  | { type: "removeGojf"; playerId: string }
+  | { type: "globalCash"; amount: number }
+  | { type: "globalTax"; amount: number }
+  | { type: "changeBotDifficulty"; playerId: string; difficulty: "easy" | "medium" | "hard" }
+  | { type: "forceBotTurn" }
+  | { type: "event"; name: "marketCrash" | "taxHoliday" | "buildingBoom" | "randomWindfall" | "propertyGiveaway" };
 
 export interface OperatorResult {
   state: GameState;
   message?: string;
   error?: string;
+  triggerBotScheduler?: boolean;
 }
 
 function fail(state: GameState, error: string): OperatorResult {
@@ -69,9 +78,13 @@ function refreshRent(property: PropertyOwnership): void {
   }
 }
 
-function finish(state: GameState, message: string): OperatorResult {
+function finish(state: GameState, message: string, triggerBotScheduler = false): OperatorResult {
   state.log.push(`[OPERATOR] ${message}`);
-  return { state, message };
+  return { state, message, triggerBotScheduler };
+}
+
+function activePlayers(state: GameState) {
+  return Object.values(state.players).filter((p) => !p.bankrupt);
 }
 
 export function applyOperatorAction(
@@ -204,7 +217,7 @@ export function applyOperatorAction(
       };
       state.phase = "card";
       state.lastRoll = null;
-      return finish(state, `Forced ${card.title} (${action.deck}) for ${player.name}.`);
+      return finish(state, `Forced ${card.title} (${action.deck}) for ${player.name}.`, true);
     }
     case "giveGojf": {
       const player = playerFor(state, action.playerId);
@@ -229,7 +242,7 @@ export function applyOperatorAction(
       };
       const result = processRoll(roomCode, currentPlayerId, roll);
       if (result.error) return fail(state, result.error);
-      return finish(state, `Forced ${currentPlayer.name} to roll ${action.die1} + ${action.die2}.`);
+      return finish(state, `Forced ${currentPlayer.name} to roll ${action.die1} + ${action.die2}.`, true);
     }
     case "endTurn": {
       if (state.turnOrder.length === 0) return fail(state, "No players remain in the turn order");
@@ -238,7 +251,7 @@ export function applyOperatorAction(
       state.lastRoll = null;
       state.activeCard = null;
       const next = state.players[state.turnOrder[state.currentTurnIndex]];
-      return finish(state, `Ended the turn. It is now ${next?.name ?? "the next player"}'s turn.`);
+      return finish(state, `Ended the turn. It is now ${next?.name ?? "the next player"}'s turn.`, true);
     }
     case "changeCurrentTurn": {
       const player = playerFor(state, action.playerId);
@@ -249,7 +262,7 @@ export function applyOperatorAction(
       state.phase = "rolling";
       state.lastRoll = null;
       state.activeCard = null;
-      return finish(state, `Changed the current turn to ${player.name}.`);
+      return finish(state, `Changed the current turn to ${player.name}.`, true);
     }
     case "setMortgaged": {
       const property = ownedProperty(state, action.spaceIndex);
@@ -257,7 +270,104 @@ export function applyOperatorAction(
       property.mortgaged = action.mortgaged;
       return finish(state, `Set ${property.name} mortgage status to ${action.mortgaged}.`);
     }
+
+    // ── New actions ──────────────────────────────────────────────────────────
+
+    case "renamePlayer": {
+      const player = playerFor(state, action.playerId);
+      if (!player) return fail(state, "Active player not found");
+      const newName = action.name.trim().slice(0, 20);
+      if (!newName) return fail(state, "Name cannot be empty");
+      const oldName = player.name;
+      player.name = newName;
+      return finish(state, `Renamed ${oldName} to ${newName}.`);
+    }
+
+    case "removeGojf": {
+      const player = playerFor(state, action.playerId);
+      if (!player) return fail(state, "Active player not found");
+      if ((player.getOutOfJailFreeCards ?? 0) <= 0) return fail(state, "Player has no Get Out of Jail Free cards");
+      player.getOutOfJailFreeCards -= 1;
+      return finish(state, `Removed a Get Out of Jail Free card from ${player.name}.`);
+    }
+
+    case "globalCash": {
+      if (!Number.isFinite(action.amount) || action.amount <= 0) return fail(state, "Amount must be positive");
+      const amt = Math.floor(action.amount);
+      const active = activePlayers(state);
+      active.forEach((p) => { p.cash += amt; });
+      return finish(state, `Gave $${amt} to all ${active.length} active players.`);
+    }
+
+    case "globalTax": {
+      if (!Number.isFinite(action.amount) || action.amount <= 0) return fail(state, "Amount must be positive");
+      const amt = Math.floor(action.amount);
+      const active = activePlayers(state);
+      active.forEach((p) => { p.cash = Math.max(0, p.cash - amt); });
+      return finish(state, `Taxed all ${active.length} active players $${amt} each.`);
+    }
+
+    case "changeBotDifficulty": {
+      const player = state.players[action.playerId];
+      if (!player) return fail(state, "Player not found");
+      if (!player.isBot) return fail(state, "Player is not a bot");
+      player.botType = action.difficulty;
+      return finish(state, `Changed ${player.name}'s difficulty to ${action.difficulty}.`);
+    }
+
+    case "forceBotTurn": {
+      return finish(state, "Bot turn forced.", true);
+    }
+
+    case "event": {
+      switch (action.name) {
+        case "marketCrash": {
+          const active = activePlayers(state);
+          active.forEach((p) => { p.cash = Math.floor(p.cash * 0.75); });
+          return finish(state, `Market Crash! All players lost 25% of their cash.`);
+        }
+        case "taxHoliday": {
+          const active = activePlayers(state);
+          active.forEach((p) => { p.cash += 200; });
+          return finish(state, `Tax Holiday! All players received $200.`);
+        }
+        case "buildingBoom": {
+          const active = activePlayers(state);
+          let recipients = 0;
+          active.forEach((p) => {
+            const hasMonopoly = Object.values(state.properties).some(
+              (prop) => prop.ownerId === p.id && prop.type === "property"
+            );
+            if (hasMonopoly) { p.cash += 400; recipients++; }
+          });
+          return finish(state, `Building Boom! ${recipients} player(s) with properties each received $400.`);
+        }
+        case "randomWindfall": {
+          const active = activePlayers(state);
+          if (active.length === 0) return fail(state, "No active players");
+          const winner = active[Math.floor(Math.random() * active.length)];
+          winner.cash += 500;
+          return finish(state, `Random Windfall! ${winner.name} received $500.`);
+        }
+        case "propertyGiveaway": {
+          const unowned = BOARD.filter(
+            (sp) => isPurchasable(sp.type) && !state.properties[sp.index]
+          );
+          if (unowned.length === 0) return fail(state, "No unowned properties to give away");
+          const active = activePlayers(state);
+          if (active.length === 0) return fail(state, "No active players");
+          const space = unowned[Math.floor(Math.random() * unowned.length)];
+          const player = active[Math.floor(Math.random() * active.length)];
+          const property = propertyFromBoard(space.index, player.id);
+          if (!property) return fail(state, "Failed to create property");
+          state.properties[space.index] = property;
+          return finish(state, `Property Giveaway! ${space.name} awarded to ${player.name}.`);
+        }
+      }
+      break;
+    }
   }
+  return fail(state, "Unknown operator action");
 }
 
 export const OPERATOR_CARDS = {
