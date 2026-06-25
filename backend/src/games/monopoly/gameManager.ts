@@ -768,18 +768,16 @@ function endTurn(
   if (getCurrentPlayerId(state) !== socketId) return { state, error: "Not your turn" };
   if (state.phase !== "ended") return { state, error: "Must resolve current action before ending turn" };
 
-  // If player rolled doubles (and is NOT in jail from this roll), they roll again
+  // consecutiveDoubles > 0 means the player rolled doubles and did NOT go to jail
+  // (jail escape via doubles resets consecutiveDoubles to 0, so no extra turn per official rules)
   const player = state.players[socketId];
-  const rolledDoubles = state.lastRoll?.isDoubles && !player.inJail;
 
-  if (rolledDoubles) {
+  if (player.consecutiveDoubles > 0) {
     state.phase = "rolling";
     state.lastRoll = null;
     state.log.push(`${player.name} rolled doubles — roll again!`);
     return { state };
   }
-
-  player.consecutiveDoubles = 0;
   state.currentTurnIndex = (state.currentTurnIndex + 1) % state.turnOrder.length;
   state.phase = "rolling";
   state.lastRoll = null;
