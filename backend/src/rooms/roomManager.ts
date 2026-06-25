@@ -1,4 +1,4 @@
-import { Room, Player } from "../types";
+import { Room, Player, BotType } from "../types";
 
 const CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 const CODE_LENGTH = 6;
@@ -116,6 +116,24 @@ function selectGame(roomCode: string, socketId: string, gameId: string): Room | 
   return room;
 }
 
+function removeBot(roomCode: string, hostId: string, botId: string): Room | null {
+  const room = rooms[roomCode];
+  if (!room || room.host !== hostId) return null;
+  const player = room.players[botId];
+  if (!player?.isBot) return null;
+  delete room.players[botId];
+  return room;
+}
+
+function setBotDifficulty(roomCode: string, hostId: string, botId: string, difficulty: BotType): Room | null {
+  const room = rooms[roomCode];
+  if (!room || room.host !== hostId) return null;
+  const player = room.players[botId];
+  if (!player?.isBot) return null;
+  player.botType = difficulty;
+  return room;
+}
+
 function getRoom(roomCode: string): Room | null {
   return rooms[roomCode] ?? null;
 }
@@ -132,4 +150,5 @@ export {
   createRoom, joinRoom, leaveRoom,
   disconnectPlayer, reconnectPlayer, restoreRoom,
   setReady, selectGame, getRoom, getRoomByPlayer, getRoomCodeByPlayer,
+  removeBot, setBotDifficulty,
 };

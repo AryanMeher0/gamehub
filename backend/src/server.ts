@@ -6,7 +6,9 @@ import healthRouter from "./routes/health";
 import {
   createRoom, joinRoom, leaveRoom, disconnectPlayer, reconnectPlayer, restoreRoom,
   setReady, selectGame, getRoomByPlayer, getRoomCodeByPlayer, getRoom,
+  removeBot, setBotDifficulty,
 } from "./rooms/roomManager";
+import { initBotScheduler, scheduleBotActions } from "./bots/botScheduler";
 import {
   createGame, processRoll, resolveCard, buyProperty, skipProperty,
   auctionBid, auctionPass, endTurn, buyBuilding, sellBuilding,
@@ -35,6 +37,8 @@ const io = new Server(httpServer, {
   origin: "*"
 }
 });
+
+initBotScheduler(io);
 
 const PORT = process.env.PORT || 4000;
 
@@ -216,6 +220,26 @@ io.on("connection", (socket) => {
     io.to(normalizedRoomCode).emit("roomUpdated", room);
   });
 
+  socket.on("lobby:removeBot", ({ roomCode, botId }: { roomCode: string; botId: string }) => {
+    const normalizedRoomCode = roomCode.toUpperCase();
+    const updatedRoom = removeBot(normalizedRoomCode, socket.id, botId);
+    if (!updatedRoom) {
+      socket.emit("lobbyError", { message: "Cannot remove bot" });
+      return;
+    }
+    io.to(normalizedRoomCode).emit("roomUpdated", updatedRoom);
+  });
+
+  socket.on("lobby:setBotDifficulty", ({ roomCode, botId, difficulty }: { roomCode: string; botId: string; difficulty: BotType }) => {
+    const normalizedRoomCode = roomCode.toUpperCase();
+    const updatedRoom = setBotDifficulty(normalizedRoomCode, socket.id, botId, difficulty);
+    if (!updatedRoom) {
+      socket.emit("lobbyError", { message: "Cannot change bot difficulty" });
+      return;
+    }
+    io.to(normalizedRoomCode).emit("roomUpdated", updatedRoom);
+  });
+
   socket.on("startGame", ({ roomCode }: { roomCode: string }) => {
 
     const room = getRoomByPlayer(socket.id);
@@ -237,14 +261,14 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const playerIds = Object.keys(room.players);
     console.log(`Game started: ${room.selectedGameId} in room ${roomCode}`);
 
     if (room.selectedGameId === "monopoly") {
-      const gameState = createGame(roomCode, playerIds);
+      const gameState = createGame(roomCode, room.players);
       persistGame(roomCode);
       io.to(roomCode).emit("startGame", { roomCode, gameId: room.selectedGameId });
       io.to(roomCode).emit("game:stateUpdated", gameState);
+      scheduleBotActions(roomCode, gameState);
     } else {
       io.to(roomCode).emit("startGame", { roomCode, gameId: room.selectedGameId });
     }
@@ -312,6 +336,7 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
+    scheduleBotActions(roomCode, state);
   });
 
   // ── GAME: RESOLVE CARD ────────────────────────────────────────────────────
@@ -320,6 +345,7 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
+    scheduleBotActions(roomCode, state);
   });
 
   // ── GAME: BUY BUILDING ────────────────────────────────────────────────────
@@ -336,6 +362,7 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
+    scheduleBotActions(roomCode, state);
   });
 
   // ── GAME: SKIP PROPERTY ───────────────────────────────────────────────────
@@ -344,6 +371,7 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
+    scheduleBotActions(roomCode, state);
   });
 
   // ── GAME: AUCTION BID ─────────────────────────────────────────────────────
@@ -352,6 +380,7 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
+    scheduleBotActions(roomCode, state);
   });
 
   // ── GAME: AUCTION PASS ────────────────────────────────────────────────────
@@ -360,6 +389,7 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
+    scheduleBotActions(roomCode, state);
   });
 
   // ── GAME: PAY JAIL FINE ───────────────────────────────────────────────────
@@ -368,6 +398,7 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
+    scheduleBotActions(roomCode, state);
   });
 
   // ── GAME: USE GOJF CARD ───────────────────────────────────────────────────
@@ -376,6 +407,7 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
+    scheduleBotActions(roomCode, state);
   });
 
   // ── GAME: SELL BUILDING ───────────────────────────────────────────────────
@@ -408,6 +440,7 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("game:error", { message: error }); return; }
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
+    scheduleBotActions(roomCode, state);
   });
 
   // ── GAME: CREATE TRADE ────────────────────────────────────────────────────

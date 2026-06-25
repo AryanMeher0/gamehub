@@ -355,12 +355,17 @@ function log(state: GameState, msg: string): void {
 
 // ─── createGame ───────────────────────────────────────────────────────────────
 
-function createGame(roomCode: string, playerIds: string[]): GameState {
+function createGame(
+  roomCode: string,
+  roomPlayers: Record<string, { isBot?: boolean; botType?: string; displayName?: string }>
+): GameState {
+  const playerIds = Object.keys(roomPlayers);
   const players: Record<string, GamePlayer> = {};
   playerIds.forEach((id, i) => {
+    const rp = roomPlayers[id];
     players[id] = {
       id,
-      name: `Player ${i + 1}`,
+      name: rp.displayName ?? `Player ${i + 1}`,
       position: 0,
       cash: STARTING_CASH,
       inJail: false,
@@ -369,6 +374,8 @@ function createGame(roomCode: string, playerIds: string[]): GameState {
       getOutOfJailFreeCards: 0,
       color: PLAYER_COLORS[i] ?? "#ffffff",
       bankrupt: false,
+      isBot: rp.isBot ?? false,
+      botType: rp.isBot ? ((rp.botType ?? "easy") as GamePlayer["botType"]) : undefined,
     };
   });
 

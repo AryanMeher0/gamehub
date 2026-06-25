@@ -45,6 +45,8 @@ export interface GamePlayer {
   getOutOfJailFreeCards: number;
   color: string;
   bankrupt: boolean;
+  isBot?: boolean;
+  botType?: "easy" | "medium" | "hard";
 }
 
 export interface PlayerRanking {

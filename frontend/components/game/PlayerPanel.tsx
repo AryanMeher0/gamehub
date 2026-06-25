@@ -140,6 +140,9 @@ export default function PlayerPanel({
                 {p.id === socketId && (
                   <span className="rounded-full bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">You</span>
                 )}
+                {p.isBot && !p.bankrupt && (
+                  <span className="rounded-full bg-sky-900 px-1.5 py-0.5 text-[10px] text-sky-400">BOT</span>
+                )}
                 {p.inJail && !p.bankrupt && (
                   <span className="rounded-full bg-red-900 px-1.5 py-0.5 text-[10px] text-red-400">Jail</span>
                 )}

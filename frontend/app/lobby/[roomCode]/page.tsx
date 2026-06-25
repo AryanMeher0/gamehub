@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
-import { Room, Player } from "@/types/lobby";
+import { Room, Player, BotType } from "@/types/lobby";
 
 import { GAME_REGISTRY } from "@/lib/games";
 import GamePicker from "@/components/lobby/GamePicker";
@@ -77,6 +77,14 @@ export default function LobbyPage() {
     getSocket().emit("lobby:addBot", { roomCode: (roomCode ?? "").toUpperCase() });
   }
 
+  function handleRemoveBot(botId: string) {
+    getSocket().emit("lobby:removeBot", { roomCode: (roomCode ?? "").toUpperCase(), botId });
+  }
+
+  function handleSetBotDifficulty(botId: string, difficulty: BotType) {
+    getSocket().emit("lobby:setBotDifficulty", { roomCode: (roomCode ?? "").toUpperCase(), botId, difficulty });
+  }
+
 
   const players = room ? Object.values(room.players) : [];
   const isHost = room?.host === socketId;
@@ -142,33 +150,53 @@ export default function LobbyPage() {
             {players.map((player: Player) => (
               <li
                 key={player.id}
-                className="flex items-center justify-between rounded-xl bg-gray-800 px-4 py-3"
+                className="flex flex-col gap-1.5 rounded-xl bg-gray-800 px-4 py-3"
               >
-                <div className="flex items-center gap-2">
-          <span className="text-sm font-mono text-gray-300">
-                    {player.displayName ?? player.id.slice(0, 8) + "…"}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-mono text-gray-300">
+                      {player.displayName ?? player.id.slice(0, 8) + "…"}
+                    </span>
+                    {player.isBot && (
+                      <span className="rounded-full bg-sky-900 px-2 py-0.5 text-[10px] font-semibold text-sky-300">
+                        BOT
+                      </span>
+                    )}
+                    {player.id === room.host && (
+                      <span className="rounded-full bg-yellow-900 px-2 py-0.5 text-xs text-yellow-400">
+                        Host
+                      </span>
+                    )}
+                    {player.id === socketId && (
+                      <span className="rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-400">
+                        You
+                      </span>
+                    )}
+                  </div>
+                  <span className={`text-xs font-semibold ${player.ready ? "text-green-400" : "text-gray-500"}`}>
+                    {player.ready ? "Ready" : "Not Ready"}
                   </span>
-                  {player.isBot && (
-                    <span className="rounded-full bg-sky-900 px-2 py-0.5 text-[10px] font-semibold text-sky-300">
-                      BOT
-                    </span>
-                  )}
-
-                  {player.id === room.host && (
-
-                    <span className="rounded-full bg-yellow-900 px-2 py-0.5 text-xs text-yellow-400">
-                      Host
-                    </span>
-                  )}
-                  {player.id === socketId && (
-                    <span className="rounded-full bg-gray-700 px-2 py-0.5 text-xs text-gray-400">
-                      You
-                    </span>
-                  )}
                 </div>
-                <span className={`text-xs font-semibold ${player.ready ? "text-green-400" : "text-gray-500"}`}>
-                  {player.ready ? "Ready" : "Not Ready"}
-                </span>
+                {/* Bot controls — visible to host only */}
+                {player.isBot && isHost && (
+                  <div className="flex items-center gap-2">
+                    <select
+                      value={player.botType ?? "easy"}
+                      onChange={(e) => handleSetBotDifficulty(player.id, e.target.value as BotType)}
+                      className="flex-1 rounded-lg bg-gray-700 px-2 py-1 text-xs text-gray-200 outline-none"
+                    >
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                    <button
+                      onClick={() => handleRemoveBot(player.id)}
+                      className="rounded-lg bg-red-900 px-2 py-1 text-[10px] font-bold text-red-300 hover:bg-red-800 active:scale-95 transition-all"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>

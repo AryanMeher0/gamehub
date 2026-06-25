@@ -1,4 +1,4 @@
-export type BotType = "easy";
+export type BotType = "easy" | "medium" | "hard";
 
 export interface Player {
   id: string;
