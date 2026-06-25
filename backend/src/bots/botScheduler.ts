@@ -1,9 +1,18 @@
 import { Server } from "socket.io";
-import { GameState } from "../types/game";
+import { GameState, TradeOffer } from "../types/game";
 import {
   processRoll, resolveCard, buyProperty, skipProperty,
-  auctionPass, endTurn, persistGame, getGame,
+  auctionBid, auctionPass, endTurn,
+  buyBuilding, sellBuilding, mortgageProperty, unmortgageProperty,
+  payJailFine, useGojf,
+  persistGame, getGame,
 } from "../games/monopoly/gameManager";
+import { createTrade, acceptTrade, rejectTrade } from "../games/monopoly/tradeManager";
+import {
+  decideBuy, decideJailAction, decideAuction, decideBuild,
+  decideUnmortgage, decideLiquidation, evaluateIncomingTrade,
+  decideOutgoingTrade,
+} from "./botDecisions";
 
 let io: Server | null = null;
 
@@ -12,20 +21,20 @@ export function initBotScheduler(ioServer: Server): void {
 }
 
 /**
- * Called after every game state broadcast. Schedules any pending bot actions.
- * Handles both turn-based actions (rolling, buying, card, endTurn)
- * and auction participation for all bots in the room.
+ * Called after every game state broadcast. Schedules pending bot actions for
+ * the current turn and responds to any incoming trades targeting bots.
  */
 export function scheduleBotActions(roomCode: string, state: GameState): void {
   if (!io) return;
   if (state.phase === "gameover") return;
 
+  scheduleBotTradeDecisions(roomCode, state);
+
   if (state.phase === "auction") {
-    scheduleAuctionPasses(roomCode, state);
+    scheduleAuctionActions(roomCode, state);
     return;
   }
 
-  // Non-auction: only the current player acts
   const currentId = state.turnOrder[state.currentTurnIndex];
   const currentPlayer = state.players[currentId];
   if (!currentPlayer?.isBot) return;
@@ -35,73 +44,196 @@ export function scheduleBotActions(roomCode: string, state: GameState): void {
   }, BOT_TURN_DELAY_MS);
 }
 
-// ─── Auction participation ────────────────────────────────────────────────────
+// ─── Incoming trade responses ─────────────────────────────────────────────────
 
-function scheduleAuctionPasses(roomCode: string, state: GameState): void {
+function scheduleBotTradeDecisions(roomCode: string, state: GameState): void {
+  const pendingForBots = Object.values(state.trades).filter(t => {
+    if (t.status !== "pending") return false;
+    const bot = state.players[t.toId];
+    return bot?.isBot && !bot.bankrupt;
+  });
+
+  pendingForBots.forEach((trade, index) => {
+    setTimeout(() => {
+      executeBotTradeResponse(roomCode, trade.id, trade.toId);
+    }, BOT_TRADE_DELAY_MS + index * 200);
+  });
+}
+
+function executeBotTradeResponse(roomCode: string, tradeId: string, botId: string): void {
+  if (!io) return;
+  const state = getGame(roomCode);
+  if (!state) return;
+
+  const trade = state.trades[tradeId];
+  if (!trade || trade.status !== "pending") return;
+
+  const bot = state.players[botId];
+  if (!bot || bot.bankrupt) return;
+
+  const botType = bot.botType ?? "easy";
+  const decision = evaluateIncomingTrade(state, trade, botId, botType);
+
+  const { error } = decision === "accept"
+    ? acceptTrade(state, tradeId, botId)
+    : rejectTrade(state, tradeId, botId);
+
+  if (error) return;
+
+  persistGame(roomCode);
+  io.to(roomCode).emit("game:stateUpdated", state);
+  io.to(roomCode).emit("game:tradeUpdated", state.trades[tradeId]);
+}
+
+// ─── Auction ──────────────────────────────────────────────────────────────────
+
+function scheduleAuctionActions(roomCode: string, state: GameState): void {
   const auction = state.auctionState;
   if (!auction) return;
 
-  const pendingBots = state.turnOrder.filter(
-    (id) =>
-      state.players[id]?.isBot &&
-      !state.players[id]?.bankrupt &&
-      !auction.passedPlayerIds.includes(id)
-  );
+  const pendingBots = state.turnOrder.filter(id => {
+    const player = state.players[id];
+    if (!player?.isBot || player.bankrupt) return false;
+    if (auction.passedPlayerIds.includes(id)) return false;
+    if (auction.highestBidderId === id) return false; // Already leading — wait for others
+    return true;
+  });
 
   pendingBots.forEach((botId, index) => {
     setTimeout(() => {
-      executeBotAuctionPass(roomCode, botId);
+      executeBotAuctionAction(roomCode, botId);
     }, BOT_AUCTION_DELAY_MS + index * BOT_AUCTION_STAGGER_MS);
   });
 }
 
-function executeBotAuctionPass(roomCode: string, botId: string): void {
+function executeBotAuctionAction(roomCode: string, botId: string): void {
   if (!io) return;
   const state = getGame(roomCode);
   if (!state || state.phase !== "auction" || !state.auctionState) return;
   if (state.auctionState.passedPlayerIds.includes(botId)) return;
+  if (state.auctionState.highestBidderId === botId) return;
 
-  const { state: next, error } = auctionPass(roomCode, botId);
-  if (error) return;
+  const player = state.players[botId];
+  if (!player || player.bankrupt) return;
+
+  const botType = player.botType ?? "easy";
+  const decision = decideAuction(state, botId, botType);
+
+  let result: { state: GameState; error?: string };
+  if (decision === "pass") {
+    result = auctionPass(roomCode, botId);
+  } else {
+    result = auctionBid(roomCode, botId, decision);
+    if (result.error) result = auctionPass(roomCode, botId);
+  }
+
+  if (result.error) return;
 
   persistGame(roomCode);
-  io.to(roomCode).emit("game:stateUpdated", next);
-  scheduleBotActions(roomCode, next);
+  io.to(roomCode).emit("game:stateUpdated", result.state);
+  scheduleBotActions(roomCode, result.state);
 }
 
-// ─── Turn actions ─────────────────────────────────────────────────────────────
+// ─── Turn execution ───────────────────────────────────────────────────────────
 
 function executeBotTurn(roomCode: string, botId: string): void {
   if (!io) return;
 
-  // Re-fetch state — it may have changed since the timeout was scheduled
   const state = getGame(roomCode);
   if (!state || state.phase === "gameover") return;
 
-  // Guard: only act if it's still this bot's turn
   const currentId = state.turnOrder[state.currentTurnIndex];
   if (currentId !== botId) return;
 
+  const player = state.players[botId];
+  if (!player || player.bankrupt) return;
+
+  const botType = player.botType ?? "easy";
   let result: { state: GameState; error?: string } | null = null;
+  let pendingTrade: TradeOffer | null = null;
 
   switch (state.phase) {
-    case "rolling":
+    case "rolling": {
+      // Proactive liquidation before rolling
+      const liq = decideLiquidation(state, botId);
+      if (liq) {
+        result = liq.type === "sellBuilding"
+          ? sellBuilding(roomCode, botId, liq.spaceIndex)
+          : mortgageProperty(roomCode, botId, liq.spaceIndex);
+        break;
+      }
+
+      if (player.inJail) {
+        const jailAction = decideJailAction(state, botId, botType);
+        if (jailAction === "gojf") {
+          result = useGojf(roomCode, botId);
+          if (result.error) result = processRoll(roomCode, botId);
+        } else if (jailAction === "fine") {
+          result = payJailFine(roomCode, botId);
+          if (result.error) result = processRoll(roomCode, botId);
+        } else {
+          result = processRoll(roomCode, botId);
+        }
+        break;
+      }
+
       result = processRoll(roomCode, botId);
       break;
+    }
 
-    case "buying":
-      // Phase 3A: always buy if possible; if error (can't afford), skip
-      result = buyProperty(roomCode, botId);
-      if (result.error) result = skipProperty(roomCode, botId);
+    case "buying": {
+      const decision = decideBuy(state, botId, botType);
+      if (decision === "buy") {
+        result = buyProperty(roomCode, botId);
+        if (result.error) result = skipProperty(roomCode, botId);
+      } else {
+        result = skipProperty(roomCode, botId);
+      }
       break;
+    }
 
     case "card":
       result = resolveCard(roomCode, botId);
       break;
 
-    case "ended":
+    case "ended": {
+      // 1. Proactive liquidation
+      const liq = decideLiquidation(state, botId);
+      if (liq) {
+        result = liq.type === "sellBuilding"
+          ? sellBuilding(roomCode, botId, liq.spaceIndex)
+          : mortgageProperty(roomCode, botId, liq.spaceIndex);
+        break;
+      }
+
+      // 2. Build houses/hotels
+      const buildIdx = decideBuild(state, botId, botType);
+      if (buildIdx !== null) {
+        result = buyBuilding(roomCode, botId, buildIdx);
+        if (result.error) result = endTurn(roomCode, botId);
+        break;
+      }
+
+      // 3. Unmortgage properties
+      const unmtgIdx = decideUnmortgage(state, botId, botType);
+      if (unmtgIdx !== null) {
+        result = unmortgageProperty(roomCode, botId, unmtgIdx);
+        if (result.error) result = endTurn(roomCode, botId);
+        break;
+      }
+
+      // 4. Propose one trade, then end turn immediately to avoid looping
+      if (botType !== "easy") {
+        const payload = decideOutgoingTrade(state, botId, botType);
+        if (payload) {
+          const { trade, error: tradeErr } = createTrade(state, payload);
+          if (!tradeErr && trade) pendingTrade = trade;
+        }
+      }
+
       result = endTurn(roomCode, botId);
       break;
+    }
 
     default:
       return;
@@ -111,6 +243,9 @@ function executeBotTurn(roomCode: string, botId: string): void {
 
   persistGame(roomCode);
   io.to(roomCode).emit("game:stateUpdated", result.state);
+  if (pendingTrade) {
+    io.to(roomCode).emit("game:tradeUpdated", pendingTrade);
+  }
   scheduleBotActions(roomCode, result.state);
 }
 
@@ -119,3 +254,4 @@ function executeBotTurn(roomCode: string, botId: string): void {
 const BOT_TURN_DELAY_MS = 800;
 const BOT_AUCTION_DELAY_MS = 600;
 const BOT_AUCTION_STAGGER_MS = 350;
+const BOT_TRADE_DELAY_MS = 500;
