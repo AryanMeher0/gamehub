@@ -170,7 +170,7 @@ export default function GamePage() {
         )}
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push(`/operator/${roomCode}`)}
+            onClick={() => router.push(`/game/monopoly/${roomCode}/operator`)}
             className="rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-400 hover:bg-amber-950/70 transition-colors"
           >
             Operator Panel
