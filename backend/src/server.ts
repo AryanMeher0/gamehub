@@ -15,6 +15,13 @@ import {
   payJailFine, useGojf, mortgageProperty, unmortgageProperty,
   handlePlayerDisconnect, reassignPlayerId, loadSavedGame, persistGame, getGame,
 } from "./games/monopoly/gameManager";
+import {
+  createGame as s5Create, drawCard as s5Draw, playCard as s5Play,
+  tradeForMaster as s5Trade, secure as s5Secure, steal as s5Steal,
+  endTurn as s5EndTurn, reassignPlayerId as s5Reassign, getGame as s5Get,
+  PlayCardInput,
+} from "./games/stack5/gameManager";
+import { CardColor, CardShape } from "./games/stack5/types";
 
 import { createTrade, acceptTrade, rejectTrade } from "./games/monopoly/tradeManager";
 import {
@@ -76,11 +83,17 @@ io.on("connection", (socket) => {
       socket.join(roomCode);
       io.to(roomCode).emit("roomUpdated", roomResult.room);
     }
-    const state = reassignPlayerId(roomCode, oldSocketId, socket.id);
-    if (state) {
-      state.log.push(`${state.players[socket.id]?.name ?? "A player"} reconnected.`);
-      persistGame(roomCode);
-      io.to(roomCode).emit("game:stateUpdated", state);
+    const room = getRoom(roomCode);
+    if (room?.selectedGameId === "stack5") {
+      const s5state = s5Reassign(roomCode, oldSocketId, socket.id);
+      if (s5state) io.to(roomCode).emit("stack5:stateUpdated", s5state);
+    } else {
+      const state = reassignPlayerId(roomCode, oldSocketId, socket.id);
+      if (state) {
+        state.log.push(`${state.players[socket.id]?.name ?? "A player"} reconnected.`);
+        persistGame(roomCode);
+        io.to(roomCode).emit("game:stateUpdated", state);
+      }
     }
     socket.emit("game:reconnected", { roomCode });
     console.log(`[reconnect] ${oldSocketId} → ${socket.id} in room ${roomCode}`);
@@ -483,6 +496,94 @@ io.on("connection", (socket) => {
     persistGame(roomCode);
     io.to(roomCode).emit("game:stateUpdated", state);
     io.to(roomCode).emit("game:tradeUpdated", state.trades[tradeId]);
+  });
+
+  // ── STACK5: CONFIGURE ────────────────────────────────────────────────────
+  socket.on("stack5:configure", ({
+    roomCode, targetScore, startingMasterCards,
+  }: { roomCode: string; targetScore: number; startingMasterCards: number }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || room.host !== socket.id) {
+      socket.emit("stack5:error", { message: "Only the host can start the game" });
+      return;
+    }
+    if (![2, 3, 4].includes(targetScore) || ![1, 2, 3, 4].includes(startingMasterCards)) {
+      socket.emit("stack5:error", { message: "Invalid configuration" });
+      return;
+    }
+    const state = s5Create(rc, room.players, targetScore, startingMasterCards);
+    io.to(rc).emit("stack5:stateUpdated", state);
+  });
+
+  // ── STACK5: GET STATE ─────────────────────────────────────────────────────
+  socket.on("stack5:getState", ({ roomCode }: { roomCode: string }) => {
+    const state = s5Get(roomCode.toUpperCase());
+    if (state) socket.emit("stack5:stateUpdated", state);
+  });
+
+  // ── STACK5: DRAW CARD ─────────────────────────────────────────────────────
+  socket.on("stack5:drawCard", ({ roomCode }: { roomCode: string }) => {
+    const rc = roomCode.toUpperCase();
+    const { state, error } = s5Draw(rc, socket.id);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+  });
+
+  // ── STACK5: PLAY CARD ─────────────────────────────────────────────────────
+  socket.on("stack5:playCard", (payload: {
+    roomCode: string;
+    cardId: string;
+    slotIndex?: number;
+    chosenColor?: CardColor;
+    chosenShape?: CardShape;
+    targetPlayerId?: string;
+  }) => {
+    const rc = payload.roomCode.toUpperCase();
+    const input: PlayCardInput = {
+      cardId: payload.cardId,
+      slotIndex: payload.slotIndex,
+      chosenColor: payload.chosenColor,
+      chosenShape: payload.chosenShape,
+      targetPlayerId: payload.targetPlayerId,
+    };
+    const { state, error } = s5Play(rc, socket.id, input);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+  });
+
+  // ── STACK5: TRADE FOR MASTER ──────────────────────────────────────────────
+  socket.on("stack5:tradeForMaster", ({ roomCode, cardIds }: { roomCode: string; cardIds: string[] }) => {
+    const rc = roomCode.toUpperCase();
+    const { state, error } = s5Trade(rc, socket.id, cardIds);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+  });
+
+  // ── STACK5: SECURE ────────────────────────────────────────────────────────
+  socket.on("stack5:secure", ({ roomCode, slotIndex }: { roomCode: string; slotIndex: number }) => {
+    const rc = roomCode.toUpperCase();
+    const { state, error } = s5Secure(rc, socket.id, slotIndex);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+  });
+
+  // ── STACK5: STEAL ─────────────────────────────────────────────────────────
+  socket.on("stack5:steal", ({
+    roomCode, targetPlayerId, targetSlotIndex,
+  }: { roomCode: string; targetPlayerId: string; targetSlotIndex: number }) => {
+    const rc = roomCode.toUpperCase();
+    const { state, error } = s5Steal(rc, socket.id, targetPlayerId, targetSlotIndex);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+  });
+
+  // ── STACK5: END TURN ──────────────────────────────────────────────────────
+  socket.on("stack5:endTurn", ({ roomCode }: { roomCode: string }) => {
+    const rc = roomCode.toUpperCase();
+    const { state, error } = s5EndTurn(rc, socket.id);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
   });
 
   // ── DISCONNECT ────────────────────────────────────────────────────────────
