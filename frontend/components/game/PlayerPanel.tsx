@@ -1,30 +1,337 @@
 "use client";
 
+import { useState, useEffect, useRef } from "react";
 import { GameState, GamePlayer, PropertyOwnership } from "@/types/game";
-import { PROPERTY_COLORS } from "@/lib/board";
+import { PROPERTY_COLORS, COLOR_GROUPS, COLOR_LABELS, RAILROAD_INDICES, UTILITY_INDICES, FULL_NAMES, BOARD } from "@/lib/board";
 
-const COLOR_GROUPS: Record<string, number[]> = {
-  brown:    [1, 3],
-  lightblue:[6, 8, 9],
-  pink:     [11, 13, 14],
-  orange:   [16, 18, 19],
-  red:      [21, 23, 24],
-  yellow:   [26, 27, 29],
-  green:    [31, 32, 34],
-  darkblue: [37, 39],
-};
+const COLOR_ORDER = ["brown", "lightblue", "pink", "orange", "red", "yellow", "green", "darkblue"];
+
+function netWorth(player: GamePlayer, properties: Record<number, PropertyOwnership>): number {
+  let worth = player.cash;
+  for (const prop of Object.values(properties)) {
+    if (prop.ownerId !== player.id) continue;
+    worth += prop.mortgaged ? Math.floor(prop.price / 2) : prop.price;
+    if (prop.type === "property" && prop.color) {
+      const hcost = { brown: 50, lightblue: 50, pink: 100, orange: 100, red: 150, yellow: 150, green: 200, darkblue: 200 }[prop.color] ?? 0;
+      worth += prop.hasHotel ? hcost * 4 : prop.houseCount * hcost;
+    }
+  }
+  return worth;
+}
 
 function ownsFullGroup(color: string, ownerId: string, properties: Record<number, PropertyOwnership>): boolean {
   return (COLOR_GROUPS[color] ?? []).every((i) => properties[i]?.ownerId === ownerId);
 }
 
-function houseCostFor(color: string): number {
-  const costs: Record<string, number> = {
-    brown: 50, lightblue: 50, pink: 100, orange: 100,
-    red: 150, yellow: 150, green: 200, darkblue: 200,
-  };
-  return costs[color] ?? 100;
+// ─── Property Carousel ────────────────────────────────────────────────────────
+
+function PropertyCarousel({
+  props: ownedProps,
+  state,
+  onSelect,
+}: {
+  props: PropertyOwnership[];
+  state: GameState;
+  onSelect: (idx: number) => void;
+}) {
+  const [cursor, setCursor] = useState(0);
+  const touchStartX = useRef<number | null>(null);
+
+  const total = ownedProps.length;
+  const current = ownedProps[cursor];
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "ArrowLeft") setCursor((c) => (c - 1 + total) % total);
+      if (e.key === "ArrowRight") setCursor((c) => (c + 1) % total);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [total]);
+
+  if (!current) return null;
+
+  const space = BOARD[current.spaceIndex];
+  const colorHex = current.color ? PROPERTY_COLORS[current.color] : null;
+  const fullName = FULL_NAMES[current.spaceIndex] ?? current.name;
+  const isMonopoly = current.color ? ownsFullGroup(current.color, current.ownerId, state.properties) : false;
+
+  return (
+    <div className="rounded-xl border border-gray-700 bg-gray-900 overflow-hidden select-none">
+      {/* Color bar */}
+      {colorHex && <div className="h-1.5 w-full" style={{ backgroundColor: colorHex }} />}
+
+      <div
+        className="p-3 cursor-pointer"
+        onClick={() => onSelect(current.spaceIndex)}
+        onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+        onTouchEnd={(e) => {
+          if (touchStartX.current === null) return;
+          const diff = touchStartX.current - e.changedTouches[0].clientX;
+          if (Math.abs(diff) > 40) {
+            setCursor(diff > 0 ? (cursor + 1) % total : (cursor - 1 + total) % total);
+          }
+          touchStartX.current = null;
+        }}
+      >
+        <div className="flex items-start justify-between gap-2 mb-2">
+          <div>
+            <p className="text-xs font-black text-white leading-snug">{fullName}</p>
+            {current.color && (
+              <span className="text-[10px] text-gray-500 capitalize">{COLOR_LABELS[current.color]}</span>
+            )}
+            {space?.type === "railroad" && <span className="text-[10px] text-gray-500">Railway</span>}
+            {space?.type === "utility" && <span className="text-[10px] text-gray-500">Utility</span>}
+          </div>
+          <div className="flex flex-col items-end gap-1">
+            {isMonopoly && (
+              <span className="rounded-full bg-yellow-400/20 border border-yellow-400/40 px-1.5 py-0.5 text-[9px] font-bold text-yellow-300">MONOPOLY</span>
+            )}
+            {current.mortgaged && (
+              <span className="rounded-full bg-orange-900/50 px-1.5 py-0.5 text-[9px] font-bold text-orange-400">MORTGAGED</span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between text-[10px] text-gray-500">
+          <span>Rent: <span className="font-bold text-yellow-400">${current.rent}</span></span>
+          <span>
+            {current.hasHotel ? "🏨" : current.houseCount > 0 ? `${"🏠".repeat(current.houseCount)}` : ""}
+            {current.houseCount === 0 && !current.hasHotel && "No buildings"}
+          </span>
+        </div>
+      </div>
+
+      {/* Nav */}
+      <div className="flex items-center justify-between border-t border-gray-800 px-2 py-1.5">
+        <button
+          onClick={(e) => { e.stopPropagation(); setCursor((cursor - 1 + total) % total); }}
+          className="rounded-lg px-2.5 py-1 text-xs font-bold text-gray-400 hover:bg-gray-800 hover:text-white transition-all"
+        >
+          ‹ Prev
+        </button>
+        <span className="text-[10px] text-gray-600">{cursor + 1} / {total}</span>
+        <button
+          onClick={(e) => { e.stopPropagation(); setCursor((cursor + 1) % total); }}
+          className="rounded-lg px-2.5 py-1 text-xs font-bold text-gray-400 hover:bg-gray-800 hover:text-white transition-all"
+        >
+          Next ›
+        </button>
+      </div>
+    </div>
+  );
 }
+
+// ─── Player Portfolio Card ────────────────────────────────────────────────────
+
+function PlayerPortfolio({
+  player,
+  state,
+  isMe,
+  isCurrentTurn,
+  onPropertyClick,
+}: {
+  player: GamePlayer;
+  state: GameState;
+  isMe: boolean;
+  isCurrentTurn: boolean;
+  onPropertyClick: (idx: number) => void;
+}) {
+  const [expanded, setExpanded] = useState(isMe);
+
+  const myProps = Object.values(state.properties).filter((p) => p.ownerId === player.id);
+  const colorProps = myProps.filter((p) => p.type === "property" && p.color);
+  const railroads = myProps.filter((p) => p.type === "railroad");
+  const utilities = myProps.filter((p) => p.type === "utility");
+  const mortgagedCount = myProps.filter((p) => p.mortgaged).length;
+  const worth = netWorth(player, state.properties);
+
+  const monopolyColors = COLOR_ORDER.filter((c) => ownsFullGroup(c, player.id, state.properties));
+
+  return (
+    <div
+      className={`rounded-xl border ${
+        isCurrentTurn
+          ? "border-indigo-500 bg-gray-800"
+          : player.bankrupt
+          ? "border-gray-800 bg-gray-900/40 opacity-50"
+          : "border-gray-700 bg-gray-900"
+      } overflow-hidden transition-all`}
+    >
+      {/* Header row */}
+      <button
+        className="w-full flex items-center gap-2 px-3 py-2.5 text-left"
+        onClick={() => setExpanded((v) => !v)}
+      >
+        <div
+          className="h-3.5 w-3.5 rounded-full border border-white/30 shrink-0"
+          style={{ backgroundColor: player.color }}
+        />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className={`text-sm font-bold truncate ${player.bankrupt ? "line-through text-gray-600" : "text-white"}`}>
+              {player.name}
+            </span>
+            {isMe && (
+              <span className="rounded-full bg-gray-700 px-1.5 py-0.5 text-[9px] text-gray-400">You</span>
+            )}
+            {player.isBot && !player.bankrupt && (
+              <span className="rounded-full bg-sky-900 px-1.5 py-0.5 text-[9px] text-sky-400">BOT</span>
+            )}
+            {player.inJail && !player.bankrupt && (
+              <span className="rounded-full bg-red-900 px-1.5 py-0.5 text-[9px] text-red-400">Jail</span>
+            )}
+            {player.bankrupt && (
+              <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-[9px] text-gray-500">Bankrupt</span>
+            )}
+            {isCurrentTurn && !player.bankrupt && (
+              <span className="rounded-full bg-indigo-900 px-1.5 py-0.5 text-[9px] text-indigo-300">● Turn</span>
+            )}
+          </div>
+          <div className="flex items-center gap-2 mt-0.5">
+            <span className="text-xs font-bold text-green-400">${player.cash}</span>
+            <span className="text-[10px] text-gray-600">·</span>
+            <span className="text-[10px] text-gray-500">NW: ${worth.toLocaleString()}</span>
+          </div>
+        </div>
+        <div className="flex items-center gap-1.5 shrink-0">
+          {/* Mini color dots for monopolies */}
+          {monopolyColors.map((c) => (
+            <div
+              key={c}
+              className="h-2.5 w-2.5 rounded-full border border-white/20"
+              style={{ backgroundColor: PROPERTY_COLORS[c] }}
+              title={COLOR_LABELS[c]}
+            />
+          ))}
+          <span className="text-gray-600 text-xs ml-1">{expanded ? "▲" : "▼"}</span>
+        </div>
+      </button>
+
+      {/* Expanded portfolio */}
+      {expanded && !player.bankrupt && (
+        <div className="border-t border-gray-800 px-3 pb-3 pt-2 flex flex-col gap-3">
+          {/* Stats row */}
+          <div className="grid grid-cols-3 gap-1.5 text-center">
+            <div className="rounded-lg bg-gray-950 px-2 py-1.5">
+              <p className="text-[9px] text-gray-500 uppercase">Props</p>
+              <p className="text-xs font-bold text-white">{myProps.length}</p>
+            </div>
+            <div className="rounded-lg bg-gray-950 px-2 py-1.5">
+              <p className="text-[9px] text-gray-500 uppercase">Monop.</p>
+              <p className="text-xs font-bold text-yellow-400">{monopolyColors.length}</p>
+            </div>
+            <div className="rounded-lg bg-gray-950 px-2 py-1.5">
+              <p className="text-[9px] text-gray-500 uppercase">Mortgd</p>
+              <p className="text-xs font-bold text-orange-400">{mortgagedCount}</p>
+            </div>
+          </div>
+
+          {/* GOJF cards */}
+          {(player.getOutOfJailFreeCards ?? 0) > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-green-400">
+              <span>🃏</span>
+              <span>{player.getOutOfJailFreeCards} × Get Out of Jail Free</span>
+            </div>
+          )}
+
+          {/* Color groups */}
+          {myProps.length > 0 && (
+            <div className="flex flex-col gap-2">
+              {/* Color property groups */}
+              {COLOR_ORDER.map((color) => {
+                const group = COLOR_GROUPS[color] ?? [];
+                const owned = group.filter((i) => state.properties[i]?.ownerId === player.id);
+                if (owned.length === 0) return null;
+                const isFullSet = owned.length === group.length;
+                return (
+                  <div key={color}>
+                    <div className="flex items-center gap-1.5 mb-1">
+                      <div className="h-2 w-4 rounded-sm" style={{ backgroundColor: PROPERTY_COLORS[color] }} />
+                      <span className="text-[10px] font-semibold text-gray-400">{COLOR_LABELS[color]}</span>
+                      <span className="text-[10px] text-gray-600">{owned.length}/{group.length}</span>
+                      {isFullSet && <span className="text-[9px] font-black text-yellow-400">★</span>}
+                    </div>
+                    <div className="flex flex-col gap-0.5">
+                      {owned.map((idx) => {
+                        const p = state.properties[idx];
+                        if (!p) return null;
+                        const name = FULL_NAMES[idx] ?? p.name;
+                        return (
+                          <button
+                            key={idx}
+                            onClick={() => onPropertyClick(idx)}
+                            className="flex items-center justify-between rounded-lg bg-gray-800/60 px-2.5 py-1.5 hover:bg-gray-700 active:scale-[0.98] transition-all text-left"
+                          >
+                            <div className="flex items-center gap-1.5">
+                              {p.mortgaged && <span className="text-[9px] text-orange-400">MTG</span>}
+                              <span className="text-[10px] text-gray-200 truncate">{name}</span>
+                            </div>
+                            <span className="text-[10px] text-gray-500 shrink-0">
+                              {p.hasHotel ? "🏨" : p.houseCount > 0 ? `${p.houseCount}🏠` : ""}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Railroads */}
+              {railroads.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] text-gray-500">🚂</span>
+                    <span className="text-[10px] font-semibold text-gray-400">Railways</span>
+                    <span className="text-[10px] text-gray-600">{railroads.length}/4</span>
+                  </div>
+                  {railroads.map((p) => (
+                    <button
+                      key={p.spaceIndex}
+                      onClick={() => onPropertyClick(p.spaceIndex)}
+                      className="flex w-full items-center justify-between rounded-lg bg-gray-800/60 px-2.5 py-1.5 hover:bg-gray-700 active:scale-[0.98] transition-all mb-0.5 text-left"
+                    >
+                      <span className="text-[10px] text-gray-200">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
+                      {p.mortgaged && <span className="text-[9px] text-orange-400">MTG</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Utilities */}
+              {utilities.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <span className="text-[10px] text-gray-500">⚡</span>
+                    <span className="text-[10px] font-semibold text-gray-400">Utilities</span>
+                    <span className="text-[10px] text-gray-600">{utilities.length}/2</span>
+                  </div>
+                  {utilities.map((p) => (
+                    <button
+                      key={p.spaceIndex}
+                      onClick={() => onPropertyClick(p.spaceIndex)}
+                      className="flex w-full items-center justify-between rounded-lg bg-gray-800/60 px-2.5 py-1.5 hover:bg-gray-700 active:scale-[0.98] transition-all mb-0.5 text-left"
+                    >
+                      <span className="text-[10px] text-gray-200">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
+                      {p.mortgaged && <span className="text-[9px] text-orange-400">MTG</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {myProps.length === 0 && (
+            <p className="text-[10px] text-gray-600 italic text-center py-1">No properties owned.</p>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main PlayerPanel ─────────────────────────────────────────────────────────
 
 interface Props {
   state: GameState;
@@ -38,6 +345,7 @@ interface Props {
   onPayJailFine: () => void;
   onUseGojf: () => void;
   onOpenTrade: () => void;
+  onPropertyClick: (spaceIndex: number) => void;
 }
 
 export default function PlayerPanel({
@@ -52,21 +360,18 @@ export default function PlayerPanel({
   onPayJailFine,
   onUseGojf,
   onOpenTrade,
+  onPropertyClick,
 }: Props) {
   const currentPlayerId = state.turnOrder[state.currentTurnIndex];
   const isMyTurn = currentPlayerId === socketId;
-  const players = Object.values(state.players);
-
   const myPlayer = state.players[socketId];
-  const canTrade = !myPlayer?.bankrupt && !state.gameOver &&
-    Object.values(state.players).some((p) => p.id !== socketId && !p.bankrupt);
 
   const isRollingPhase = isMyTurn && state.phase === "rolling";
   const isEndedPhase = isMyTurn && state.phase === "ended";
   const canManageProperties = isMyTurn && (state.phase === "rolling" || state.phase === "ended");
   const inJail = myPlayer?.inJail ?? false;
 
-  // Buildable properties (even-building rule shown via visual check)
+  // Properties I can act on
   const buildable = isEndedPhase
     ? Object.values(state.properties).filter(
         (p) =>
@@ -75,34 +380,39 @@ export default function PlayerPanel({
           p.color &&
           !p.hasHotel &&
           !p.mortgaged &&
-          ownsFullGroup(p.color, socketId, state.properties)
+          (COLOR_GROUPS[p.color] ?? []).every((i) => state.properties[i]?.ownerId === socketId)
       )
     : [];
 
-  // Sellable buildings (any time for cash)
-  const sellable = Object.values(state.properties).filter(
-    (p) =>
-      p.ownerId === socketId &&
-      p.type === "property" &&
-      (p.hasHotel || p.houseCount > 0)
-  );
+  const sellable = canManageProperties
+    ? Object.values(state.properties).filter(
+        (p) => p.ownerId === socketId && p.type === "property" && (p.hasHotel || p.houseCount > 0)
+      )
+    : [];
 
-  // Mortgageable properties (no buildings, not mortgaged)
-  const mortgageable = Object.values(state.properties).filter(
-    (p) =>
-      p.ownerId === socketId &&
-      !p.mortgaged &&
-      !p.hasHotel &&
-      p.houseCount === 0
-  );
+  const mortgageable = canManageProperties
+    ? Object.values(state.properties).filter(
+        (p) => p.ownerId === socketId && !p.mortgaged && !p.hasHotel && p.houseCount === 0
+      )
+    : [];
 
-  // Unmortgageable properties
-  const unmortgageable = Object.values(state.properties).filter(
-    (p) => p.ownerId === socketId && p.mortgaged
-  );
+  const unmortgageable = canManageProperties
+    ? Object.values(state.properties).filter((p) => p.ownerId === socketId && p.mortgaged)
+    : [];
 
-  const hasAnyPropertyActions = canManageProperties &&
-    (sellable.length > 0 || mortgageable.length > 0 || unmortgageable.length > 0);
+  const canTrade =
+    !myPlayer?.bankrupt &&
+    !state.gameOver &&
+    Object.values(state.players).some((p) => p.id !== socketId && !p.bankrupt);
+
+  // Player order: me first, then others by turn order
+  const playerOrder = [
+    socketId,
+    ...state.turnOrder.filter((id) => id !== socketId),
+  ].filter((id) => state.players[id]);
+
+  // My owned props for carousel
+  const myOwnedProps = Object.values(state.properties).filter((p) => p.ownerId === socketId);
 
   return (
     <div className="flex flex-col gap-3">
@@ -123,44 +433,6 @@ export default function PlayerPanel({
         </div>
       )}
 
-      {/* Players */}
-      <div className="rounded-xl border border-gray-700 bg-gray-900 p-3">
-        <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-500">Players</p>
-        <div className="flex flex-col gap-2">
-          {players.map((p: GamePlayer) => (
-            <div
-              key={p.id}
-              className={`flex items-center justify-between rounded-lg px-3 py-2 ${
-                p.id === currentPlayerId ? "bg-gray-800 ring-1 ring-indigo-500" : "bg-gray-800/40"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <div className="h-3 w-3 rounded-full border border-white/30" style={{ backgroundColor: p.color }} />
-                <span className={`text-sm font-semibold ${p.bankrupt ? "text-gray-600 line-through" : "text-white"}`}>{p.name}</span>
-                {p.id === socketId && (
-                  <span className="rounded-full bg-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">You</span>
-                )}
-                {p.isBot && !p.bankrupt && (
-                  <span className="rounded-full bg-sky-900 px-1.5 py-0.5 text-[10px] text-sky-400">BOT</span>
-                )}
-                {p.inJail && !p.bankrupt && (
-                  <span className="rounded-full bg-red-900 px-1.5 py-0.5 text-[10px] text-red-400">Jail</span>
-                )}
-                {p.getOutOfJailFreeCards > 0 && !p.bankrupt && (
-                  <span className="rounded-full bg-green-900 px-1.5 py-0.5 text-[10px] text-green-400">
-                    🃏×{p.getOutOfJailFreeCards}
-                  </span>
-                )}
-                {p.bankrupt && (
-                  <span className="rounded-full bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-500">Bankrupt</span>
-                )}
-              </div>
-              <span className={`text-sm font-bold ${p.bankrupt ? "text-gray-600" : "text-green-400"}`}>${p.cash}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-
       {/* Supply tracker */}
       <div className="flex gap-2 rounded-xl border border-gray-700 bg-gray-900 px-3 py-2 text-xs text-gray-400">
         <span>🏠 {state.housesRemaining} left</span>
@@ -171,10 +443,11 @@ export default function PlayerPanel({
       {/* Turn indicator */}
       <div className="rounded-xl border border-gray-700 bg-gray-900 px-3 py-2 text-center">
         {isMyTurn ? (
-          <p className="text-sm font-bold text-indigo-400">Your turn</p>
+          <p className="text-sm font-bold text-indigo-400">Your turn — {state.phase}</p>
         ) : (
           <p className="text-sm text-gray-400">
-            Waiting for <span className="font-bold text-white">{state.players[currentPlayerId]?.name}</span>...
+            Waiting for <span className="font-bold text-white">{state.players[currentPlayerId]?.name}</span>
+            <span className="text-gray-600 text-xs ml-1">({state.phase})</span>
           </p>
         )}
       </div>
@@ -182,7 +455,7 @@ export default function PlayerPanel({
       {/* Jail controls */}
       {isRollingPhase && inJail && myPlayer && (
         <div className="rounded-xl border border-red-900 bg-red-950/30 p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-red-400">In Jail</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-red-400">In Jail (Turn {myPlayer.jailTurns + 1}/3)</p>
           <div className="flex flex-col gap-1.5">
             {myPlayer.getOutOfJailFreeCards > 0 && (
               <button
@@ -200,9 +473,7 @@ export default function PlayerPanel({
                 Pay $50 Fine
               </button>
             )}
-            <p className="text-center text-xs text-gray-500">
-              Or roll doubles to escape (turn {myPlayer.jailTurns}/3)
-            </p>
+            <p className="text-center text-xs text-gray-500">Or roll for doubles to escape</p>
           </div>
         </div>
       )}
@@ -214,16 +485,15 @@ export default function PlayerPanel({
           <div className="flex flex-col gap-1.5">
             {buildable.map((p: PropertyOwnership) => {
               const colorHex = p.color ? PROPERTY_COLORS[p.color] : "#374151";
-              const cost = houseCostFor(p.color!);
+              const costs: Record<string, number> = { brown: 50, lightblue: 50, pink: 100, orange: 100, red: 150, yellow: 150, green: 200, darkblue: 200 };
+              const cost = p.color ? (costs[p.color] ?? 100) : 100;
               const label = p.houseCount < 4 ? `House ($${cost})` : `Hotel ($${cost})`;
               return (
                 <div key={p.spaceIndex} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: colorHex }} />
-                    <span className="text-xs text-gray-300 truncate">{p.name}</span>
-                    <span className="text-[10px] text-gray-500">
-                      {p.houseCount > 0 ? `${p.houseCount}⌂` : ""}
-                    </span>
+                    <span className="text-xs text-gray-300 truncate">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
+                    {p.houseCount > 0 && <span className="text-[10px] text-gray-500">{p.houseCount}🏠</span>}
                   </div>
                   <button
                     onClick={() => onBuyBuilding(p.spaceIndex)}
@@ -238,57 +508,49 @@ export default function PlayerPanel({
         </div>
       )}
 
-      {/* Property management (sell / mortgage / unmortgage) */}
-      {hasAnyPropertyActions && myPlayer && !myPlayer.bankrupt && (
+      {/* Property management */}
+      {(sellable.length > 0 || mortgageable.length > 0 || unmortgageable.length > 0) && myPlayer && !myPlayer.bankrupt && (
         <div className="rounded-xl border border-gray-700 bg-gray-900 p-3">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-500">Properties</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-500">Property Actions</p>
           <div className="flex flex-col gap-1.5">
             {sellable.map((p: PropertyOwnership) => {
-              const colorHex = p.color ? PROPERTY_COLORS[p.color] : "#374151";
-              const cost = houseCostFor(p.color!);
-              const sellValue = Math.floor(cost / 2);
+              const costs: Record<string, number> = { brown: 50, lightblue: 50, pink: 100, orange: 100, red: 150, yellow: 150, green: 200, darkblue: 200 };
+              const cost = p.color ? (costs[p.color] ?? 100) : 100;
               return (
                 <div key={`sell-${p.spaceIndex}`} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: colorHex }} />
-                    <span className="text-xs text-gray-300 truncate">{p.name}</span>
-                    <span className="text-[10px] text-gray-500">
-                      {p.hasHotel ? "🏨" : `${p.houseCount}⌂`}
-                    </span>
+                    {p.color && <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PROPERTY_COLORS[p.color] }} />}
+                    <span className="text-xs text-gray-300 truncate">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
+                    <span className="text-[10px] text-gray-500">{p.hasHotel ? "🏨" : `${p.houseCount}🏠`}</span>
                   </div>
                   <button
                     onClick={() => onSellBuilding(p.spaceIndex)}
                     className="shrink-0 rounded-lg bg-red-800 px-2 py-1 text-[10px] font-bold hover:bg-red-700 active:scale-95 transition-all"
                   >
-                    Sell +${sellValue}
+                    Sell +${Math.floor(cost / 2)}
                   </button>
                 </div>
               );
             })}
-            {mortgageable.map((p: PropertyOwnership) => {
-              const mortgageValue = Math.floor(p.price / 2);
-              return (
-                <div key={`mtg-${p.spaceIndex}`} className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-300 truncate">{p.name}</span>
-                  </div>
-                  <button
-                    onClick={() => onMortgage(p.spaceIndex)}
-                    className="shrink-0 rounded-lg bg-orange-800 px-2 py-1 text-[10px] font-bold hover:bg-orange-700 active:scale-95 transition-all"
-                  >
-                    Mortgage +${mortgageValue}
-                  </button>
-                </div>
-              );
-            })}
+            {mortgageable.map((p: PropertyOwnership) => (
+              <div key={`mtg-${p.spaceIndex}`} className="flex items-center justify-between gap-2">
+                <span className="text-xs text-gray-300 truncate">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
+                <button
+                  onClick={() => onMortgage(p.spaceIndex)}
+                  className="shrink-0 rounded-lg bg-orange-800 px-2 py-1 text-[10px] font-bold hover:bg-orange-700 active:scale-95 transition-all"
+                >
+                  Mortgage +${Math.floor(p.price / 2)}
+                </button>
+              </div>
+            ))}
             {unmortgageable.map((p: PropertyOwnership) => {
               const cost = Math.ceil(p.price / 2 * 1.1);
               const canAfford = (myPlayer?.cash ?? 0) >= cost;
               return (
                 <div key={`unmtg-${p.spaceIndex}`} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-gray-500 truncate line-through">{p.name}</span>
-                    <span className="text-[10px] text-orange-500">mortgaged</span>
+                    <span className="text-xs text-gray-500 line-through truncate">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
+                    <span className="text-[9px] text-orange-400">mtg</span>
                   </div>
                   <button
                     onClick={() => onUnmortgage(p.spaceIndex)}
@@ -333,6 +595,39 @@ export default function PlayerPanel({
           🤝 Propose Trade
         </button>
       )}
+
+      {/* My property carousel */}
+      {myOwnedProps.length > 0 && (
+        <div>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-gray-500 px-0.5">My Properties</p>
+          <PropertyCarousel
+            props={myOwnedProps}
+            state={state}
+            onSelect={onPropertyClick}
+          />
+        </div>
+      )}
+
+      {/* Player portfolio list */}
+      <div>
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-gray-500 px-0.5">Players</p>
+        <div className="flex flex-col gap-2">
+          {playerOrder.map((id) => {
+            const p = state.players[id];
+            if (!p) return null;
+            return (
+              <PlayerPortfolio
+                key={id}
+                player={p}
+                state={state}
+                isMe={id === socketId}
+                isCurrentTurn={id === currentPlayerId}
+                onPropertyClick={onPropertyClick}
+              />
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }

@@ -5,7 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { BoardSpace, GameState } from "@/types/game";
 
-type Tab = "Players" | "Properties" | "Buildings" | "Cards" | "Debug";
+type Tab = "Players" | "Properties" | "Buildings" | "Cards" | "Economy" | "Events" | "Bots" | "Debug";
 type CardDeck = "chance" | "community";
 type CardOption = { id: string; title: string; description: string };
 type AccessPayload =
@@ -17,7 +17,7 @@ type AccessPayload =
       cards: Record<CardDeck, CardOption[]>;
     };
 
-const TABS: Tab[] = ["Players", "Properties", "Buildings", "Cards", "Debug"];
+const TABS: Tab[] = ["Players", "Properties", "Buildings", "Cards", "Economy", "Events", "Bots", "Debug"];
 
 export default function OperatorPage() {
   const { roomCode: rawRoomCode } = useParams<{ roomCode: string }>();
@@ -42,6 +42,10 @@ export default function OperatorPage() {
   const [cardId, setCardId] = useState("");
   const [die1, setDie1] = useState(1);
   const [die2, setDie2] = useState(1);
+  const [newName, setNewName] = useState("");
+  const [globalAmount, setGlobalAmount] = useState(200);
+  const [botDifficulty, setBotDifficulty] = useState<"easy" | "medium" | "hard">("medium");
+  const [botPlayerId, setBotPlayerId] = useState("");
 
   useEffect(() => {
     const previousSocketId = sessionStorage.getItem(`gamehub:socket:${roomCode}`);
@@ -72,6 +76,8 @@ export default function OperatorPage() {
       const firstPlayer = payload.state.turnOrder[0] ?? Object.keys(payload.state.players)[0] ?? "";
       setPlayerId((current) => current || firstPlayer);
       setCardPlayerId((current) => current || firstPlayer);
+      const firstBot = Object.values(payload.state.players).find((p) => p.isBot);
+      if (firstBot) setBotPlayerId((current) => current || firstBot.id);
     }
 
     function onStateUpdated(updated: GameState) {
@@ -127,6 +133,7 @@ export default function OperatorPage() {
   }, [cards, deck, cardId]);
 
   const players = useMemo(() => (state ? Object.values(state.players) : []), [state]);
+  const bots = useMemo(() => players.filter((p) => p.isBot && !p.bankrupt), [players]);
   const purchasableSpaces = useMemo(
     () => board.filter((space) => ["property", "railroad", "utility"].includes(space.type)),
     [board]
@@ -196,7 +203,7 @@ export default function OperatorPage() {
             <button
               key={item}
               onClick={() => setTab(item)}
-              className={`min-w-fit rounded-xl px-5 py-3 text-sm font-bold transition ${
+              className={`min-w-fit rounded-xl px-4 py-3 text-sm font-bold transition ${
                 tab === item ? "bg-amber-400 text-slate-950" : "text-slate-400 hover:bg-slate-800"
               }`}
             >
@@ -238,6 +245,22 @@ export default function OperatorPage() {
               <div className="grid grid-cols-2 gap-2">
                 <DangerButton onClick={() => send({ type: "sendToJail", playerId })}>Send to jail</DangerButton>
                 <ActionButton onClick={() => send({ type: "releaseFromJail", playerId })}>Release from jail</ActionButton>
+              </div>
+              <Field label="Rename player">
+                <input
+                  className={inputClass}
+                  type="text"
+                  placeholder="New name..."
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                />
+              </Field>
+              <ActionButton onClick={() => { send({ type: "renamePlayer", playerId, name: newName }); setNewName(""); }}>
+                Rename player
+              </ActionButton>
+              <div className="grid grid-cols-2 gap-2">
+                <ActionButton onClick={() => send({ type: "giveGojf", playerId })}>Give GOJF card</ActionButton>
+                <DangerButton onClick={() => send({ type: "removeGojf", playerId })}>Remove GOJF card</DangerButton>
               </div>
             </Panel>
 
@@ -338,8 +361,8 @@ export default function OperatorPage() {
               </Field>
               <Field label="Deck">
                 <select className={inputClass} value={deck} onChange={(e) => setDeck(e.target.value as CardDeck)}>
-                  <option value="chance">Chance</option>
-                  <option value="community">Community Chest</option>
+                  <option value="chance">Lucky Draw</option>
+                  <option value="community">Jan Kalyan</option>
                 </select>
               </Field>
               <Field label="Card">
@@ -348,7 +371,7 @@ export default function OperatorPage() {
                 </select>
               </Field>
               <ActionButton onClick={() => send({ type: "forceCard", playerId: cardPlayerId, deck, cardId })}>
-                Force {deck === "chance" ? "Chance" : "Community Chest"} card
+                Force {deck === "chance" ? "Lucky Draw" : "Jan Kalyan"} card
               </ActionButton>
             </Panel>
             <Panel title="Get Out of Jail Free">
@@ -359,8 +382,181 @@ export default function OperatorPage() {
                 Current cards: {state.players[cardPlayerId]?.getOutOfJailFreeCards ?? 0}
               </p>
               <ActionButton onClick={() => send({ type: "giveGojf", playerId: cardPlayerId })}>
-                Give GOJIF card
+                Give GOJF card
               </ActionButton>
+            </Panel>
+            <Panel title="Deck contents">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Lucky Draw ({state.chanceDeck?.length ?? 0} remaining)
+                  </p>
+                  <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                    {(state.chanceDeck ?? []).map((id, i) => {
+                      const card = cards.chance.find((c) => c.id === id);
+                      return (
+                        <div key={i} className="rounded-lg bg-slate-950 px-2 py-1.5 text-xs text-slate-400">
+                          {card?.title ?? id}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-slate-500">
+                    Jan Kalyan ({state.communityDeck?.length ?? 0} remaining)
+                  </p>
+                  <div className="flex flex-col gap-1 max-h-60 overflow-y-auto">
+                    {(state.communityDeck ?? []).map((id, i) => {
+                      const card = cards.community.find((c) => c.id === id);
+                      return (
+                        <div key={i} className="rounded-lg bg-slate-950 px-2 py-1.5 text-xs text-slate-400">
+                          {card?.title ?? id}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </Panel>
+          </div>
+        )}
+
+        {tab === "Economy" && (
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Panel title="Global cash">
+              <p className="text-sm text-slate-400">Apply cash changes to all active (non-bankrupt) players at once.</p>
+              <Field label="Amount">
+                <NumberInput value={globalAmount} onChange={setGlobalAmount} min={0} />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <ActionButton onClick={() => send({ type: "globalCash", amount: globalAmount })}>
+                  Give ${globalAmount} to all
+                </ActionButton>
+                <DangerButton onClick={() => send({ type: "globalTax", amount: globalAmount })}>
+                  Tax ${globalAmount} from all
+                </DangerButton>
+              </div>
+            </Panel>
+            <Panel title="Individual cash">
+              <Field label="Player">
+                <PlayerSelect players={players} value={playerId} onChange={setPlayerId} />
+              </Field>
+              <Field label="Amount">
+                <NumberInput value={cashAmount} onChange={setCashAmount} min={0} />
+              </Field>
+              <div className="grid grid-cols-3 gap-2">
+                <ActionButton onClick={() => send({ type: "addCash", playerId, amount: cashAmount })}>Add</ActionButton>
+                <ActionButton onClick={() => send({ type: "removeCash", playerId, amount: cashAmount })}>Remove</ActionButton>
+                <ActionButton onClick={() => send({ type: "setCash", playerId, amount: cashAmount })}>Set</ActionButton>
+              </div>
+            </Panel>
+          </div>
+        )}
+
+        {tab === "Events" && (
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Panel title="Market events">
+              <p className="text-sm text-slate-400 mb-2">Trigger a global economic event that affects all players.</p>
+              <div className="flex flex-col gap-3">
+                <EventCard
+                  title="Market Crash"
+                  description="All players lose 25% of their cash. Simulates a stock market downturn."
+                  danger
+                  onClick={() => send({ type: "event", name: "marketCrash" })}
+                />
+                <EventCard
+                  title="Tax Holiday"
+                  description="All players receive $200. A government relief package for everyone."
+                  onClick={() => send({ type: "event", name: "taxHoliday" })}
+                />
+                <EventCard
+                  title="Building Boom"
+                  description="All players who own properties receive $400. Real estate prices surge."
+                  onClick={() => send({ type: "event", name: "buildingBoom" })}
+                />
+              </div>
+            </Panel>
+            <Panel title="Random events">
+              <p className="text-sm text-slate-400 mb-2">Trigger events that target a random player.</p>
+              <div className="flex flex-col gap-3">
+                <EventCard
+                  title="Random Windfall"
+                  description="One random active player receives $500. Could be anyone!"
+                  onClick={() => send({ type: "event", name: "randomWindfall" })}
+                />
+                <EventCard
+                  title="Property Giveaway"
+                  description="One random unowned property is given to a random player for free."
+                  onClick={() => send({ type: "event", name: "propertyGiveaway" })}
+                />
+              </div>
+            </Panel>
+          </div>
+        )}
+
+        {tab === "Bots" && (
+          <div className="grid gap-5 lg:grid-cols-2">
+            <Panel title="Bot difficulty">
+              {bots.length === 0 ? (
+                <p className="text-sm text-slate-500">No active bots in this game.</p>
+              ) : (
+                <>
+                  <Field label="Bot player">
+                    <select
+                      className={inputClass}
+                      value={botPlayerId}
+                      onChange={(e) => setBotPlayerId(e.target.value)}
+                    >
+                      {bots.map((b) => (
+                        <option key={b.id} value={b.id}>
+                          {b.name} ({b.botType ?? "easy"}) — ${b.cash}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="New difficulty">
+                    <select
+                      className={inputClass}
+                      value={botDifficulty}
+                      onChange={(e) => setBotDifficulty(e.target.value as "easy" | "medium" | "hard")}
+                    >
+                      <option value="easy">Easy</option>
+                      <option value="medium">Medium</option>
+                      <option value="hard">Hard</option>
+                    </select>
+                  </Field>
+                  <ActionButton onClick={() => send({ type: "changeBotDifficulty", playerId: botPlayerId, difficulty: botDifficulty })}>
+                    Change difficulty
+                  </ActionButton>
+                </>
+              )}
+            </Panel>
+            <Panel title="Bot actions">
+              <p className="text-sm text-slate-400">Force the current bot to take their turn immediately.</p>
+              <ActionButton onClick={() => send({ type: "forceBotTurn" })}>Force bot turn</ActionButton>
+              <div className="mt-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-500 mb-2">Active bots</p>
+                {bots.length === 0 && <p className="text-sm text-slate-600">None</p>}
+                <div className="flex flex-col gap-2">
+                  {bots.map((b) => (
+                    <div key={b.id} className="flex items-center justify-between rounded-xl bg-slate-950 px-4 py-3">
+                      <div>
+                        <p className="font-bold text-sm">{b.name}</p>
+                        <p className="text-xs text-slate-500">{b.botType ?? "easy"} · ${b.cash}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {b.inJail && <span className="text-xs text-red-400 rounded-full bg-red-950 px-2 py-0.5">Jail</span>}
+                        <span className={`text-xs rounded-full px-2 py-0.5 ${
+                          b.botType === "hard" ? "bg-red-900 text-red-300" :
+                          b.botType === "medium" ? "bg-amber-900 text-amber-300" :
+                          "bg-slate-800 text-slate-400"
+                        }`}>{b.botType ?? "easy"}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </Panel>
           </div>
         )}
@@ -476,5 +672,29 @@ function DangerButton({ children, onClick }: { children: React.ReactNode; onClic
     <button onClick={onClick} className="rounded-xl bg-red-900 px-3 py-2.5 text-sm font-bold text-red-200 hover:bg-red-800 active:scale-[0.98]">
       {children}
     </button>
+  );
+}
+
+function EventCard({
+  title,
+  description,
+  danger,
+  onClick,
+}: {
+  title: string;
+  description: string;
+  danger?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <div className={`rounded-xl border p-4 ${danger ? "border-red-800 bg-red-950/30" : "border-slate-800 bg-slate-950"}`}>
+      <p className={`font-bold mb-1 ${danger ? "text-red-300" : "text-white"}`}>{title}</p>
+      <p className="text-xs text-slate-500 mb-3">{description}</p>
+      {danger ? (
+        <DangerButton onClick={onClick}>Trigger {title}</DangerButton>
+      ) : (
+        <ActionButton onClick={onClick}>Trigger {title}</ActionButton>
+      )}
+    </div>
   );
 }

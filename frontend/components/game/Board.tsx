@@ -6,10 +6,11 @@ import { BOARD, PROPERTY_COLORS, getSpaceBg } from "@/lib/board";
 interface Props {
   players: Record<string, GamePlayer>;
   properties: Record<number, PropertyOwnership>;
+  onSpaceClick?: (spaceIndex: number) => void;
 }
 
 function getPlayersOnSpace(index: number, players: Record<string, GamePlayer>): GamePlayer[] {
-  return Object.values(players).filter((p) => p.position === index);
+  return Object.values(players).filter((p) => p.position === index && !p.bankrupt);
 }
 
 function SpaceCell({
@@ -17,17 +18,26 @@ function SpaceCell({
   players,
   ownership,
   ownerColor,
+  onClick,
 }: {
   space: BoardSpace;
   players: GamePlayer[];
   ownership?: PropertyOwnership;
   ownerColor?: string;
+  onClick?: () => void;
 }) {
   const propertyColorHex = space.color ? PROPERTY_COLORS[space.color] : null;
+  const isClickable = !!onClick;
 
   return (
     <div
-      className={`relative flex flex-col items-center justify-between overflow-hidden border border-gray-700 text-center ${getSpaceBg(space.type)}`}
+      role={isClickable ? "button" : undefined}
+      tabIndex={isClickable ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={isClickable ? (e) => { if (e.key === "Enter" || e.key === " ") onClick?.(); } : undefined}
+      className={`relative flex flex-col items-center justify-between overflow-hidden border border-gray-700 text-center ${getSpaceBg(space.type)} ${
+        isClickable ? "cursor-pointer hover:brightness-125 transition-all active:scale-[0.97]" : ""
+      }`}
     >
       {/* Property color bar */}
       {propertyColorHex && (
@@ -47,25 +57,26 @@ function SpaceCell({
       {space.tax && <p className="text-[5px] text-red-400">-${space.tax}</p>}
 
       {/* Buildings */}
-      {ownership && ownership.hasHotel && (
-        <div className="text-[7px] leading-none" title="Hotel">
-          🏨
-        </div>
+      {ownership?.hasHotel && (
+        <div className="text-[7px] leading-none" title="Hotel">🏨</div>
       )}
       {ownership && !ownership.hasHotel && ownership.houseCount > 0 && (
         <div className="flex gap-px justify-center">
           {Array.from({ length: ownership.houseCount }).map((_, i) => (
-            <div
-              key={i}
-              className="h-1.5 w-1.5 rounded-sm bg-green-500"
-              title="House"
-            />
+            <div key={i} className="h-1.5 w-1.5 rounded-sm bg-green-500" title="House" />
           ))}
         </div>
       )}
 
-      {/* Owner dot — shown when owned but no buildings */}
-      {ownership && ownerColor && !ownership.hasHotel && ownership.houseCount === 0 && (
+      {/* Mortgage indicator */}
+      {ownership?.mortgaged && (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/50">
+          <span className="rotate-[-30deg] text-[6px] font-black text-orange-400 tracking-wider">MTG</span>
+        </div>
+      )}
+
+      {/* Owner dot — when owned with no buildings */}
+      {ownership && ownerColor && !ownership.hasHotel && ownership.houseCount === 0 && !ownership.mortgaged && (
         <div
           className="mb-0.5 h-2 w-2 rounded-full border border-white/40 shadow"
           style={{ backgroundColor: ownerColor }}
@@ -79,7 +90,7 @@ function SpaceCell({
           {players.map((p) => (
             <div
               key={p.id}
-              className="h-2.5 w-2.5 rounded-full border border-white/40 shadow"
+              className="h-2.5 w-2.5 rounded-full border-2 border-white/80 shadow-lg"
               style={{ backgroundColor: p.color }}
               title={p.name}
             />
@@ -97,9 +108,10 @@ function getBoardPosition(index: number): [number, number] {
   return [index - 29, 11];
 }
 
-export default function Board({ players, properties }: Props) {
+export default function Board({ players, properties, onSpaceClick }: Props) {
   return (
-    <div className="relative grid aspect-square w-full"
+    <div
+      className="relative grid aspect-square w-full"
       style={{
         gridTemplateColumns: "repeat(11, 1fr)",
         gridTemplateRows: "repeat(11, 1fr)",
@@ -122,6 +134,7 @@ export default function Board({ players, properties }: Props) {
               players={onSpace}
               ownership={ownership}
               ownerColor={ownerColor}
+              onClick={onSpaceClick ? () => onSpaceClick(space.index) : undefined}
             />
           </div>
         );
@@ -132,10 +145,10 @@ export default function Board({ players, properties }: Props) {
         style={{ gridRow: "2 / 11", gridColumn: "2 / 11" }}
         className="flex flex-col items-center justify-center gap-1 bg-gray-950 border border-gray-800"
       >
-        <p className="text-2xl font-black tracking-widest text-indigo-400">GAMEHUB</p>
+        <p className="text-xl font-black tracking-widest text-amber-400">INDIA</p>
         <p className="text-xs text-gray-600 tracking-widest uppercase">Monopoly</p>
+        <p className="text-[10px] text-gray-700 tracking-widest uppercase mt-0.5">Click any space</p>
       </div>
     </div>
   );
 }
-

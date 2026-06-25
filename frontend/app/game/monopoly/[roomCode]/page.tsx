@@ -13,6 +13,7 @@ import GameOverScreen from "@/components/game/GameOverScreen";
 import TradeModal from "@/components/game/TradeModal";
 import IncomingTradeModal from "@/components/game/IncomingTradeModal";
 import AuctionModal from "@/components/game/AuctionModal";
+import PropertyDetailDrawer from "@/components/game/PropertyDetailDrawer";
 
 export default function GamePage() {
   const { roomCode } = useParams<{ roomCode: string }>();
@@ -22,6 +23,7 @@ export default function GamePage() {
   const [error, setError] = useState("");
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [incomingTrade, setIncomingTrade] = useState<TradeOffer | null>(null);
+  const [selectedSpace, setSelectedSpace] = useState<number | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
@@ -147,7 +149,11 @@ export default function GamePage() {
       {/* Body */}
       <div className="flex flex-1 flex-col gap-4 p-4 lg:flex-row lg:items-start">
         <div className="w-full lg:flex-1">
-          <Board players={state.players} properties={state.properties} />
+          <Board
+            players={state.players}
+            properties={state.properties}
+            onSpaceClick={(i) => setSelectedSpace(i)}
+          />
         </div>
 
         <div className="flex w-full flex-col gap-4 lg:w-72 lg:shrink-0">
@@ -163,6 +169,7 @@ export default function GamePage() {
             onPayJailFine={handlePayJailFine}
             onUseGojf={handleUseGojf}
             onOpenTrade={() => setShowTradeModal(true)}
+            onPropertyClick={(i) => setSelectedSpace(i)}
           />
           <GameLog log={state.log} />
         </div>
@@ -214,6 +221,15 @@ export default function GamePage() {
           state={state}
           onAccept={() => handleAcceptTrade(incomingTrade.id)}
           onReject={() => handleRejectTrade(incomingTrade.id)}
+        />
+      )}
+
+      {/* Property detail drawer */}
+      {selectedSpace !== null && (
+        <PropertyDetailDrawer
+          spaceIndex={selectedSpace}
+          state={state}
+          onClose={() => setSelectedSpace(null)}
         />
       )}
 

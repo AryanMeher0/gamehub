@@ -103,6 +103,7 @@ export default function GamePage() {
             onPayJailFine={() => {}}
             onUseGojf={() => {}}
             onOpenTrade={() => {}}
+            onPropertyClick={() => {}}
           />
           <GameLog log={state.log} />
         </div>
