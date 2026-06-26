@@ -34,6 +34,7 @@ export default function GamePage() {
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [incomingTrade, setIncomingTrade] = useState<TradeOffer | null>(null);
   const [selectedSpace, setSelectedSpace] = useState<number | null>(null);
+  const [tokens, setTokens] = useState<Record<string, string>>({});
   const prevStateRef = useRef<GameState | null>(null);
 
   useEffect(() => {
@@ -105,13 +106,23 @@ export default function GamePage() {
       }
     }
 
+    function onTokensData(data: Record<string, string>) {
+      setTokens(data);
+    }
+    function onTokenUpdated({ playerId, tokenDataUrl }: { playerId: string; tokenDataUrl: string }) {
+      setTokens((prev) => ({ ...prev, [playerId]: tokenDataUrl }));
+    }
+
     socket.on("connect", onConnect);
     socket.on("disconnect", onDisconnect);
     socket.on("game:stateUpdated", onStateUpdated);
     socket.on("game:error", onError);
     socket.on("game:tradeUpdated", onTradeUpdated);
+    socket.on("player:tokensData", onTokensData);
+    socket.on("player:tokenUpdated", onTokenUpdated);
 
     socket.emit("game:getState", { roomCode });
+    socket.emit("player:getTokens", { roomCode });
 
     return () => {
       socket.off("connect", onConnect);
@@ -119,6 +130,8 @@ export default function GamePage() {
       socket.off("game:stateUpdated", onStateUpdated);
       socket.off("game:error", onError);
       socket.off("game:tradeUpdated", onTradeUpdated);
+      socket.off("player:tokensData", onTokensData);
+      socket.off("player:tokenUpdated", onTokenUpdated);
     };
   }, [roomCode]);
 
@@ -222,6 +235,7 @@ export default function GamePage() {
             <Board
               players={state.players}
               properties={state.properties}
+              tokens={tokens}
               onSpaceClick={(i) => setSelectedSpace(i)}
             />
           </div>

@@ -10,6 +10,8 @@ export interface Player {
   botType?: BotType;
   /** Display name used in lobby. */
   displayName?: string;
+  /** Base64 data URL for the player's custom board token. */
+  tokenDataUrl?: string;
 }
 
 

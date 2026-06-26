@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { Room, Player, BotType } from "@/types/lobby";
 import { GAME_REGISTRY } from "@/lib/games";
+import TokenPicker from "@/components/TokenPicker";
+import { loadToken, saveToken } from "@/lib/token";
 
 const GAME_ICONS: Record<string, string> = {
   monopoly: "🎩",
@@ -18,13 +20,26 @@ export default function LobbyPage() {
   const [room, setRoom] = useState<Room | null>(null);
   const [socketId, setSocketId] = useState<string>("");
   const [lobbyError, setLobbyError] = useState<string>("");
+  const [showTokenPicker, setShowTokenPicker] = useState(false);
+  const [myToken, setMyToken] = useState<string | null>(null);
+
+  // Load saved token from localStorage on mount
+  useEffect(() => {
+    const saved = loadToken();
+    if (saved) setMyToken(saved);
+  }, []);
 
   useEffect(() => {
     const socket = getSocket();
     setSocketId(socket.id ?? "");
     const rc = (roomCode ?? "").toUpperCase();
 
-    function onConnect() { setSocketId(socket.id ?? ""); }
+    function onConnect() {
+      setSocketId(socket.id ?? "");
+      // Re-send token if reconnecting
+      const saved = loadToken();
+      if (saved) socket.emit("player:setToken", { roomCode: rc, tokenDataUrl: saved });
+    }
     function onRoomUpdated(updated: Room) { setRoom(updated); }
     function onStartGame({ gameId }: { roomCode: string; gameId: string }) {
       router.push(`/game/${gameId}/${roomCode}`);
@@ -40,6 +55,12 @@ export default function LobbyPage() {
     socket.on("lobbyError", onLobbyError);
     socket.emit("joinRoom", { roomCode: rc });
 
+    // Send any previously-saved token right away
+    const saved = loadToken();
+    if (saved && socket.connected) {
+      socket.emit("player:setToken", { roomCode: rc, tokenDataUrl: saved });
+    }
+
     return () => {
       socket.off("connect", onConnect);
       socket.off("roomUpdated", onRoomUpdated);
@@ -47,6 +68,14 @@ export default function LobbyPage() {
       socket.off("lobbyError", onLobbyError);
     };
   }, [roomCode, router]);
+
+  function handleTokenSelect(dataUrl: string) {
+    saveToken(dataUrl);
+    setMyToken(dataUrl);
+    const rc = (roomCode ?? "").toUpperCase();
+    getSocket().emit("player:setToken", { roomCode: rc, tokenDataUrl: dataUrl });
+    setShowTokenPicker(false);
+  }
 
   function handleLeave() {
     getSocket().emit("leaveRoom", { roomCode: (roomCode ?? "").toUpperCase() });
@@ -105,6 +134,14 @@ export default function LobbyPage() {
     <main className="flex min-h-screen flex-col items-center justify-center gap-5 px-4 py-8 text-white"
       style={{ background: "radial-gradient(ellipse at 50% 40%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
 
+      {showTokenPicker && (
+        <TokenPicker
+          current={myToken}
+          onSelect={handleTokenSelect}
+          onClose={() => setShowTokenPicker(false)}
+        />
+      )}
+
       {/* Host badge */}
       {isHost && (
         <div className="text-center fade-up">
@@ -122,6 +159,36 @@ export default function LobbyPage() {
       )}
 
       <div className="w-full max-w-sm flex flex-col gap-4">
+
+        {/* Token selector */}
+        <div className="rounded-2xl border border-slate-800/60 bg-black/40 p-4 backdrop-blur fade-up">
+          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-500">Your Token</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowTokenPicker(true)}
+              className="h-14 w-14 rounded-xl overflow-hidden shrink-0 border-2 border-dashed transition-all hover:border-amber-500/60 active:scale-95"
+              style={{ borderColor: myToken ? "rgba(245,158,11,0.5)" : "rgba(255,255,255,0.15)", background: "rgba(0,0,0,0.3)" }}
+            >
+              {myToken ? (
+                <img src={myToken} alt="your token" className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center text-2xl">🎮</div>
+              )}
+            </button>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white truncate">
+                {myToken ? "Token selected" : "No token chosen"}
+              </p>
+              <p className="text-xs text-slate-500 mt-0.5">This is your piece on the board</p>
+              <button
+                onClick={() => setShowTokenPicker(true)}
+                className="mt-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                {myToken ? "Change token →" : "Pick a token →"}
+              </button>
+            </div>
+          </div>
+        </div>
 
         {/* Game picker */}
         <div className="rounded-2xl border border-slate-800/60 bg-black/40 p-4 backdrop-blur fade-up" style={{ animationDelay: "60ms" }}>
@@ -184,11 +251,19 @@ export default function LobbyPage() {
                 style={{ background: "rgba(0,0,0,0.25)", border: "1px solid rgba(255,255,255,0.04)" }}>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    {/* Avatar */}
-                    <div className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-black text-amber-300"
-                      style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(245,158,11,0.2)" }}>
-                      {(player.displayName ?? player.id).charAt(0).toUpperCase()}
-                    </div>
+                    {/* Token / avatar */}
+                    {player.tokenDataUrl ? (
+                      <img
+                        src={player.tokenDataUrl}
+                        alt="token"
+                        className="h-7 w-7 rounded-lg object-cover border border-amber-400/30 shrink-0"
+                      />
+                    ) : (
+                      <div className="h-7 w-7 rounded-full flex items-center justify-center text-xs font-black text-amber-300 shrink-0"
+                        style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(245,158,11,0.2)" }}>
+                        {(player.displayName ?? player.id).charAt(0).toUpperCase()}
+                      </div>
+                    )}
                     <span className="text-sm font-bold text-white">
                       {player.displayName ?? player.id.slice(0, 8) + "…"}
                     </span>

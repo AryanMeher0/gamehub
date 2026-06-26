@@ -17,6 +17,7 @@ type Side = "south" | "north" | "west" | "east";
 type Props = {
   players: Record<string, GamePlayer>;
   properties: Record<number, PropertyOwnership>;
+  tokens?: Record<string, string>;
   onSpaceClick?: (spaceIndex: number) => void;
 };
 
@@ -74,6 +75,7 @@ function TileContent({
   onClick,
   isCorner,
   side,
+  tokens,
 }: {
   space: BoardSpace;
   players: GamePlayer[];
@@ -82,6 +84,7 @@ function TileContent({
   onClick?: () => void;
   isCorner: boolean;
   side?: Side;
+  tokens?: Record<string, string>;
 }) {
   const propertyColorHex = space.color ? PROPERTY_COLORS[space.color] : null;
   const isOwned = !!ownership;
@@ -145,11 +148,20 @@ function TileContent({
           )}
           {players.length > 0 && (
             <div className="flex flex-wrap justify-center gap-[2px] mt-[2px]">
-              {players.map((p) => (
+              {players.map((p) => tokens?.[p.id] ? (
+                <img
+                  key={p.id}
+                  src={tokens[p.id]}
+                  alt={p.name}
+                  title={p.name}
+                  className="rounded border border-white/60 shadow-lg object-cover"
+                  style={{ width: "clamp(12px,2vw,20px)", height: "clamp(12px,2vw,20px)" }}
+                />
+              ) : (
                 <div
                   key={p.id}
-                  className="h-4 w-4 rounded-full border-2 border-white/80 shadow-lg"
-                  style={{ backgroundColor: p.color }}
+                  className="rounded-full border-2 border-white/80 shadow-lg"
+                  style={{ backgroundColor: p.color, width: "clamp(10px,1.8vw,18px)", height: "clamp(10px,1.8vw,18px)" }}
                   title={p.name}
                 />
               ))}
@@ -231,7 +243,16 @@ function TileContent({
           {/* Player tokens */}
           {players.length > 0 && (
             <div className="flex flex-wrap justify-center gap-[1px] mt-[1px]">
-              {players.map((p) => (
+              {players.map((p) => tokens?.[p.id] ? (
+                <img
+                  key={p.id}
+                  src={tokens[p.id]}
+                  alt={p.name}
+                  title={p.name}
+                  className="rounded-sm border border-white/60 shadow-lg object-cover"
+                  style={{ width: "clamp(10px, 1.6vw, 16px)", height: "clamp(10px, 1.6vw, 16px)" }}
+                />
+              ) : (
                 <div
                   key={p.id}
                   className="rounded-full border border-white/80 shadow-lg"
@@ -276,7 +297,7 @@ function TileContent({
   );
 }
 
-export default function Board({ players, properties, onSpaceClick }: Props) {
+export default function Board({ players, properties, tokens, onSpaceClick }: Props) {
   return (
     <div
       className="relative aspect-square w-full"
@@ -350,6 +371,7 @@ export default function Board({ players, properties, onSpaceClick }: Props) {
                 onClick={onSpaceClick ? () => onSpaceClick(spaceIndex) : undefined}
                 isCorner={isCorner}
                 side={side}
+                tokens={tokens}
               />
             </div>
           );

@@ -564,6 +564,28 @@ io.on("connection", (socket) => {
     io.emit("rooms:list", getAllRooms());
   });
 
+  // ── PLAYER TOKEN ──────────────────────────────────────────────────────────
+  socket.on("player:setToken", ({ roomCode, tokenDataUrl }: { roomCode: string; tokenDataUrl: string }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || !room.players[socket.id]) return;
+    if (typeof tokenDataUrl !== "string" || !tokenDataUrl.startsWith("data:image/")) return;
+    if (tokenDataUrl.length > 131072) return; // 128KB max
+    room.players[socket.id].tokenDataUrl = tokenDataUrl;
+    io.to(rc).emit("player:tokenUpdated", { playerId: socket.id, tokenDataUrl });
+  });
+
+  socket.on("player:getTokens", ({ roomCode }: { roomCode: string }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room) return;
+    const tokens: Record<string, string> = {};
+    Object.entries(room.players).forEach(([id, p]) => {
+      if (p.tokenDataUrl) tokens[id] = p.tokenDataUrl;
+    });
+    socket.emit("player:tokensData", tokens);
+  });
+
   // ── STACK5: GET STATE ─────────────────────────────────────────────────────
   socket.on("stack5:getState", ({ roomCode }: { roomCode: string }) => {
     const state = s5Get(roomCode.toUpperCase());
