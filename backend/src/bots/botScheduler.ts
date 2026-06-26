@@ -27,6 +27,8 @@ export function initBotScheduler(ioServer: Server): void {
 export function scheduleBotActions(roomCode: string, state: GameState): void {
   if (!io) return;
   if (state.phase === "gameover") return;
+  console.log(`[BOT] scheduler triggered room=${roomCode} phase=${state.phase} currentTurn=${state.turnOrder[state.currentTurnIndex]}`);
+
 
   scheduleBotTradeDecisions(roomCode, state);
 
@@ -38,6 +40,8 @@ export function scheduleBotActions(roomCode: string, state: GameState): void {
   const currentId = state.turnOrder[state.currentTurnIndex];
   const currentPlayer = state.players[currentId];
   if (!currentPlayer?.isBot) return;
+  console.log(`[BOT] turn detected bot=${currentId} name=${currentPlayer?.name} phase=${state.phase}`);
+
 
   setTimeout(() => {
     executeBotTurn(roomCode, currentId);
@@ -154,6 +158,8 @@ function executeBotTurn(roomCode: string, botId: string): void {
 
   switch (state.phase) {
     case "rolling": {
+      console.log(`[BOT] decision selected bot=${botId} phase=rolling jail=${player.inJail}`);
+
       // Proactive liquidation before rolling
       const liq = decideLiquidation(state, botId);
       if (liq) {
@@ -239,10 +245,15 @@ function executeBotTurn(roomCode: string, botId: string): void {
       return;
   }
 
-  if (!result || result.error) return;
+  if (!result || result.error) {
+    if (result?.error) console.log(`[BOT] action error bot=${botId} phase=${state.phase} err=${result.error}`);
+    return;
+  }
 
+  console.log(`[BOT] action executed bot=${botId} nextPhase=${result.state.phase} nextTurn=${result.state.turnOrder[result.state.currentTurnIndex]}`);
   persistGame(roomCode);
   io.to(roomCode).emit("game:stateUpdated", result.state);
+
   if (pendingTrade) {
     io.to(roomCode).emit("game:tradeUpdated", pendingTrade);
   }

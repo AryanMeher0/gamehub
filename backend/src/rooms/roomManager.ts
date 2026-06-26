@@ -16,7 +16,8 @@ function generateRoomCode(): string {
 }
 
 function createRoom(socketId: string): Room {
-  const roomCode = generateRoomCode();
+  const roomCode = generateRoomCode().toUpperCase();
+
   const player: Player = { id: socketId, ready: false };
   rooms[roomCode] = {
     roomCode,
@@ -30,10 +31,16 @@ function createRoom(socketId: string): Room {
 }
 
 function joinRoom(roomCode: string, socketId: string): { success: boolean; room?: Room; message?: string } {
-  const room = rooms[roomCode];
+  const normalized = roomCode.toUpperCase();
+  const room = rooms[normalized];
+
   if (!room) return { success: false, message: "Room not found" };
   if (room.players[socketId]) return { success: true, room };
+
   room.players[socketId] = { id: socketId, ready: false };
+  // Ensure returned roomCode matches the canonical key we used.
+  room.roomCode = normalized;
+
   return { success: true, room };
 }
 

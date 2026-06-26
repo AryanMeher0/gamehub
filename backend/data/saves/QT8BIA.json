@@ -1,0 +1,166 @@
+{
+  "roomCode": "QT8BIA",
+  "players": {
+    "bot_QT8BIA_1": {
+      "id": "bot_QT8BIA_1",
+      "name": "Bot Alpha",
+      "position": 28,
+      "cash": 1075,
+      "inJail": false,
+      "jailTurns": 0,
+      "consecutiveDoubles": 0,
+      "getOutOfJailFreeCards": 0,
+      "color": "#3b82f6",
+      "bankrupt": false,
+      "isBot": true,
+      "botType": "easy"
+    }
+  },
+  "turnOrder": [
+    "bot_QT8BIA_1"
+  ],
+  "currentTurnIndex": 0,
+  "phase": "gameover",
+  "lastRoll": null,
+  "properties": {
+    "11": {
+      "spaceIndex": 11,
+      "ownerId": "bot_QT8BIA_1",
+      "price": 140,
+      "rent": 10,
+      "name": "Pune",
+      "color": "pink",
+      "type": "property",
+      "houseCount": 0,
+      "hasHotel": false,
+      "mortgaged": false
+    },
+    "21": {
+      "spaceIndex": 21,
+      "ownerId": "bot_QT8BIA_1",
+      "price": 220,
+      "rent": 18,
+      "name": "Bangalore Tech Park",
+      "color": "red",
+      "type": "property",
+      "houseCount": 0,
+      "hasHotel": false,
+      "mortgaged": false
+    }
+  },
+  "log": [
+    "Game started! Player 1 goes first.",
+    "Player 1 rolled 6 + 5 = 11",
+    "Player 1 landed on Pune.",
+    "Player 1 bought Pune for $140.",
+    "It's now Bot Alpha's turn.",
+    "Bot Alpha rolled 5 + 1 = 6",
+    "Bot Alpha landed on Jaipur.",
+    "Bot Alpha bought Jaipur for $100.",
+    "It's now Player 1's turn.",
+    "Player 1 rolled 6 + 3 = 9",
+    "Player 1 landed on Free Parking.",
+    "Player 1 mortgaged Pune for $70.",
+    "It's now Bot Alpha's turn.",
+    "Bot Alpha rolled 1 + 3 = 4",
+    "Bot Alpha landed on Jail / Visiting.",
+    "It's now Player 1's turn.",
+    "Player 1 rolled 2 + 6 = 8",
+    "Player 1 landed on Water Board.",
+    "Player 1 bought Water Board for $150.",
+    "It's now Bot Alpha's turn.",
+    "Bot Alpha rolled 5 + 6 = 11",
+    "Bot Alpha landed on Bangalore Tech Park.",
+    "Bot Alpha bought Bangalore Tech Park for $220.",
+    "It's now Player 1's turn.",
+    "Player 1 rolled 1 + 3 = 4",
+    "Player 1 landed on Gateway of India.",
+    "Player 1 bought Gateway of India for $300.",
+    "🤝 Player 1 offered Pune to Bot Alpha in exchange for Jaipur.",
+    "It's now Bot Alpha's turn.",
+    "  Pune transferred to Bot Alpha.",
+    "  Jaipur transferred to Player 1.",
+    "✅ Bot Alpha accepted the trade with Player 1.",
+    "Bot Alpha rolled 6 + 1 = 7",
+    "Bot Alpha landed on Water Board.",
+    "Bot Alpha paid $28 rent to Player 1 for Water Board.",
+    "Bot Alpha unmortgaged Pune for $77.",
+    "It's now Player 1's turn.",
+    "Player 1 disconnected.",
+    "🏆 Bot Alpha wins the game!"
+  ],
+  "activeCard": null,
+  "gameOver": true,
+  "winnerId": "bot_QT8BIA_1",
+  "winnerName": "Bot Alpha",
+  "rankings": [
+    {
+      "id": "bot_QT8BIA_1",
+      "name": "Bot Alpha",
+      "color": "#3b82f6",
+      "cash": 1075,
+      "propertyCount": 2,
+      "netWorth": 1435,
+      "rank": 1
+    }
+  ],
+  "trades": {
+    "trade_1": {
+      "id": "trade_1",
+      "fromId": "bwLt35YDXMVl7uWtAAAB",
+      "toId": "bot_QT8BIA_1",
+      "offeredCash": 0,
+      "requestedCash": 0,
+      "offeredPropertyIndices": [
+        11
+      ],
+      "requestedPropertyIndices": [
+        6
+      ],
+      "status": "accepted"
+    }
+  },
+  "auctionState": null,
+  "housesRemaining": 32,
+  "hotelsRemaining": 12,
+  "chanceDeck": [
+    "ch_jail",
+    "ch_gojf",
+    "ch_chairman",
+    "ch_go",
+    "ch_repairs",
+    "ch_rr2",
+    "ch_reading",
+    "ch_dividend",
+    "ch_stcharles",
+    "ch_boardwalk",
+    "ch_tax",
+    "ch_illinois",
+    "ch_rr1",
+    "ch_utility",
+    "ch_back3",
+    "ch_loan"
+  ],
+  "communityDeck": [
+    "cc_stock",
+    "cc_insurance",
+    "cc_bank_error",
+    "cc_birthday",
+    "cc_school",
+    "cc_opera",
+    "cc_holiday",
+    "cc_tax_refund",
+    "cc_go",
+    "cc_consultancy",
+    "cc_beauty",
+    "cc_hospital",
+    "cc_jail",
+    "cc_gojf",
+    "cc_repairs",
+    "cc_doctor"
+  ],
+  "savedAt": 1782398799564,
+  "playerNames": [
+    "Bot Alpha"
+  ]
+}

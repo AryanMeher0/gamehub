@@ -1,0 +1,90 @@
+{
+  "roomCode": "QNFWIV",
+  "players": {
+    "bot_QNFWIV_1": {
+      "id": "bot_QNFWIV_1",
+      "name": "Bot Alpha",
+      "position": 0,
+      "cash": 1500,
+      "inJail": false,
+      "jailTurns": 0,
+      "consecutiveDoubles": 0,
+      "getOutOfJailFreeCards": 0,
+      "color": "#3b82f6",
+      "bankrupt": false,
+      "isBot": true,
+      "botType": "easy"
+    }
+  },
+  "turnOrder": [
+    "bot_QNFWIV_1"
+  ],
+  "currentTurnIndex": 0,
+  "phase": "gameover",
+  "lastRoll": null,
+  "properties": {},
+  "log": [
+    "Game started! Player 1 goes first.",
+    "Player 1 disconnected.",
+    "🏆 Bot Alpha wins the game!"
+  ],
+  "activeCard": null,
+  "gameOver": true,
+  "winnerId": "bot_QNFWIV_1",
+  "winnerName": "Bot Alpha",
+  "rankings": [
+    {
+      "id": "bot_QNFWIV_1",
+      "name": "Bot Alpha",
+      "color": "#3b82f6",
+      "cash": 1500,
+      "propertyCount": 0,
+      "netWorth": 1500,
+      "rank": 1
+    }
+  ],
+  "trades": {},
+  "auctionState": null,
+  "housesRemaining": 32,
+  "hotelsRemaining": 12,
+  "chanceDeck": [
+    "ch_gojf",
+    "ch_utility",
+    "ch_dividend",
+    "ch_stcharles",
+    "ch_tax",
+    "ch_go",
+    "ch_repairs",
+    "ch_utility2",
+    "ch_reading",
+    "ch_jail",
+    "ch_illinois",
+    "ch_back3",
+    "ch_boardwalk",
+    "ch_rr1",
+    "ch_rr2",
+    "ch_reading2"
+  ],
+  "communityDeck": [
+    "cc_tax_refund",
+    "cc_beauty",
+    "cc_jail",
+    "cc_holiday",
+    "cc_insurance",
+    "cc_school",
+    "cc_go",
+    "cc_stock",
+    "cc_consultancy",
+    "cc_gojf",
+    "cc_inherit",
+    "cc_repairs",
+    "cc_hospital",
+    "cc_birthday",
+    "cc_doctor",
+    "cc_bank_error"
+  ],
+  "savedAt": 1782420879957,
+  "playerNames": [
+    "Bot Alpha"
+  ]
+}

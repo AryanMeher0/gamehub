@@ -1,0 +1,135 @@
+{
+  "roomCode": "2IZ2NR",
+  "players": {
+    "9VAFIjXChhx5qlTwAAAN": {
+      "id": "9VAFIjXChhx5qlTwAAAN",
+      "name": "Player 1",
+      "position": 21,
+      "cash": 1140,
+      "inJail": false,
+      "jailTurns": 0,
+      "consecutiveDoubles": 1,
+      "getOutOfJailFreeCards": 0,
+      "color": "#ef4444",
+      "bankrupt": false,
+      "isBot": false
+    },
+    "bot_2IZ2NR_1": {
+      "id": "bot_2IZ2NR_1",
+      "name": "Bot Alpha",
+      "position": 10,
+      "cash": 1500,
+      "inJail": false,
+      "jailTurns": 0,
+      "consecutiveDoubles": 0,
+      "getOutOfJailFreeCards": 0,
+      "color": "#3b82f6",
+      "bankrupt": false,
+      "isBot": true,
+      "botType": "easy"
+    }
+  },
+  "turnOrder": [
+    "9VAFIjXChhx5qlTwAAAN",
+    "bot_2IZ2NR_1"
+  ],
+  "currentTurnIndex": 0,
+  "phase": "ended",
+  "lastRoll": {
+    "die1": 5,
+    "die2": 5,
+    "total": 10,
+    "isDoubles": true
+  },
+  "properties": {
+    "11": {
+      "spaceIndex": 11,
+      "ownerId": "9VAFIjXChhx5qlTwAAAN",
+      "price": 140,
+      "rent": 10,
+      "name": "Pune",
+      "color": "pink",
+      "type": "property",
+      "houseCount": 0,
+      "hasHotel": false,
+      "mortgaged": false
+    },
+    "21": {
+      "spaceIndex": 21,
+      "ownerId": "9VAFIjXChhx5qlTwAAAN",
+      "price": 220,
+      "rent": 18,
+      "name": "Bangalore Tech Park",
+      "color": "red",
+      "type": "property",
+      "houseCount": 0,
+      "hasHotel": false,
+      "mortgaged": false
+    }
+  },
+  "log": [
+    "Game started! Player 1 goes first.",
+    "Player 1 rolled 4 + 3 = 7",
+    "Player 1 landed on Lucky Draw.",
+    "Player 1 drew a Chance card: \"Advance to Pune\"",
+    "Player 1 landed on Pune.",
+    "Player 1 bought Pune for $140.",
+    "It's now Bot Alpha's turn.",
+    "Bot Alpha rolled 6 + 4 = 10",
+    "Bot Alpha landed on Jail / Visiting.",
+    "It's now Player 1's turn.",
+    "Player 1 rolled 5 + 5 = 10",
+    "Player 1 rolled doubles (1/3).",
+    "Player 1 landed on Bangalore Tech Park.",
+    "Player 1 bought Bangalore Tech Park for $220."
+  ],
+  "activeCard": null,
+  "gameOver": false,
+  "winnerId": null,
+  "winnerName": null,
+  "rankings": [],
+  "trades": {},
+  "auctionState": null,
+  "housesRemaining": 32,
+  "hotelsRemaining": 12,
+  "chanceDeck": [
+    "ch_tax",
+    "ch_dividend",
+    "ch_reading",
+    "ch_utility2",
+    "ch_jail",
+    "ch_rr2",
+    "ch_gojf",
+    "ch_utility",
+    "ch_back3",
+    "ch_repairs",
+    "ch_reading2",
+    "ch_go",
+    "ch_boardwalk",
+    "ch_rr1",
+    "ch_illinois"
+  ],
+  "communityDeck": [
+    "cc_stock",
+    "cc_doctor",
+    "cc_repairs",
+    "cc_inherit",
+    "cc_bank_error",
+    "cc_beauty",
+    "cc_consultancy",
+    "cc_school",
+    "cc_holiday",
+    "cc_hospital",
+    "cc_birthday",
+    "cc_gojf",
+    "cc_jail",
+    "cc_insurance",
+    "cc_go",
+    "cc_tax_refund"
+  ],
+  "savedAt": 1782415948358,
+  "playerNames": [
+    "Player 1",
+    "Bot Alpha"
+  ]
+}

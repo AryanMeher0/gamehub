@@ -1,0 +1,93 @@
+{
+  "roomCode": "YNLRC5",
+  "players": {
+    "4UWo608fmbhjyugcAAAX": {
+      "id": "4UWo608fmbhjyugcAAAX",
+      "name": "Player 1",
+      "position": 0,
+      "cash": 1500,
+      "inJail": false,
+      "jailTurns": 0,
+      "consecutiveDoubles": 0,
+      "getOutOfJailFreeCards": 0,
+      "color": "#ef4444",
+      "bankrupt": false,
+      "isBot": false
+    },
+    "bot_YNLRC5_1": {
+      "id": "bot_YNLRC5_1",
+      "name": "Bot Alpha",
+      "position": 0,
+      "cash": 1500,
+      "inJail": false,
+      "jailTurns": 0,
+      "consecutiveDoubles": 0,
+      "getOutOfJailFreeCards": 0,
+      "color": "#3b82f6",
+      "bankrupt": false,
+      "isBot": true,
+      "botType": "easy"
+    }
+  },
+  "turnOrder": [
+    "4UWo608fmbhjyugcAAAX",
+    "bot_YNLRC5_1"
+  ],
+  "currentTurnIndex": 0,
+  "phase": "rolling",
+  "lastRoll": null,
+  "properties": {},
+  "log": [
+    "Game started! Player 1 goes first."
+  ],
+  "activeCard": null,
+  "gameOver": false,
+  "winnerId": null,
+  "winnerName": null,
+  "rankings": [],
+  "trades": {},
+  "auctionState": null,
+  "housesRemaining": 32,
+  "hotelsRemaining": 12,
+  "chanceDeck": [
+    "ch_chairman",
+    "ch_rr1",
+    "ch_utility",
+    "ch_gojf",
+    "ch_go",
+    "ch_back3",
+    "ch_dividend",
+    "ch_repairs",
+    "ch_jail",
+    "ch_stcharles",
+    "ch_reading",
+    "ch_rr2",
+    "ch_loan",
+    "ch_tax",
+    "ch_boardwalk",
+    "ch_illinois"
+  ],
+  "communityDeck": [
+    "cc_opera",
+    "cc_school",
+    "cc_beauty",
+    "cc_gojf",
+    "cc_repairs",
+    "cc_doctor",
+    "cc_holiday",
+    "cc_jail",
+    "cc_stock",
+    "cc_go",
+    "cc_bank_error",
+    "cc_consultancy",
+    "cc_insurance",
+    "cc_hospital",
+    "cc_tax_refund",
+    "cc_birthday"
+  ],
+  "savedAt": 1782401849959,
+  "playerNames": [
+    "Player 1",
+    "Bot Alpha"
+  ]
+}

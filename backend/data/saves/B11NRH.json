@@ -1,0 +1,90 @@
+{
+  "roomCode": "B11NRH",
+  "players": {
+    "bot_B11NRH_1": {
+      "id": "bot_B11NRH_1",
+      "name": "Bot Alpha",
+      "position": 0,
+      "cash": 1500,
+      "inJail": false,
+      "jailTurns": 0,
+      "consecutiveDoubles": 0,
+      "getOutOfJailFreeCards": 0,
+      "color": "#3b82f6",
+      "bankrupt": false,
+      "isBot": true,
+      "botType": "hard"
+    }
+  },
+  "turnOrder": [
+    "bot_B11NRH_1"
+  ],
+  "currentTurnIndex": 0,
+  "phase": "gameover",
+  "lastRoll": null,
+  "properties": {},
+  "log": [
+    "Game started! Player 1 goes first.",
+    "Player 1 disconnected.",
+    "🏆 Bot Alpha wins the game!"
+  ],
+  "activeCard": null,
+  "gameOver": true,
+  "winnerId": "bot_B11NRH_1",
+  "winnerName": "Bot Alpha",
+  "rankings": [
+    {
+      "id": "bot_B11NRH_1",
+      "name": "Bot Alpha",
+      "color": "#3b82f6",
+      "cash": 1500,
+      "propertyCount": 0,
+      "netWorth": 1500,
+      "rank": 1
+    }
+  ],
+  "trades": {},
+  "auctionState": null,
+  "housesRemaining": 32,
+  "hotelsRemaining": 12,
+  "chanceDeck": [
+    "ch_stcharles",
+    "ch_chairman",
+    "ch_go",
+    "ch_illinois",
+    "ch_utility",
+    "ch_jail",
+    "ch_boardwalk",
+    "ch_rr1",
+    "ch_repairs",
+    "ch_reading",
+    "ch_rr2",
+    "ch_dividend",
+    "ch_loan",
+    "ch_tax",
+    "ch_back3",
+    "ch_gojf"
+  ],
+  "communityDeck": [
+    "cc_jail",
+    "cc_doctor",
+    "cc_beauty",
+    "cc_insurance",
+    "cc_stock",
+    "cc_hospital",
+    "cc_go",
+    "cc_birthday",
+    "cc_opera",
+    "cc_bank_error",
+    "cc_repairs",
+    "cc_school",
+    "cc_holiday",
+    "cc_tax_refund",
+    "cc_gojf",
+    "cc_consultancy"
+  ],
+  "savedAt": 1782399475930,
+  "playerNames": [
+    "Bot Alpha"
+  ]
+}
