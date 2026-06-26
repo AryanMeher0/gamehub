@@ -34,8 +34,17 @@ export default function LobbyPage() {
     setSocketId(socket.id ?? "");
     const rc = (roomCode ?? "").toUpperCase();
 
+    function sendName() {
+      const name = (
+        sessionStorage.getItem("gamehub:pendingName") ??
+        localStorage.getItem("gamehub:name") ?? ""
+      ).trim();
+      if (name) socket.emit("room:setDisplayName", { roomCode: rc, name });
+    }
+
     function onConnect() {
       setSocketId(socket.id ?? "");
+      sendName();
       // Re-send token if reconnecting
       const saved = loadToken();
       if (saved) socket.emit("player:setToken", { roomCode: rc, tokenDataUrl: saved });
@@ -55,7 +64,8 @@ export default function LobbyPage() {
     socket.on("lobbyError", onLobbyError);
     socket.emit("joinRoom", { roomCode: rc });
 
-    // Send any previously-saved token right away
+    // Send name and token right away if already connected
+    sendName();
     const saved = loadToken();
     if (saved && socket.connected) {
       socket.emit("player:setToken", { roomCode: rc, tokenDataUrl: saved });

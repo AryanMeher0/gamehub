@@ -47,6 +47,11 @@ export default function GamePage() {
       if (socket.id) sessionStorage.setItem(`gamehub:socket:${roomCode}`, socket.id);
       setDisconnected(false);
       socket.emit("game:getState", { roomCode });
+      const name = (
+        sessionStorage.getItem("gamehub:pendingName") ??
+        localStorage.getItem("gamehub:name") ?? ""
+      ).trim();
+      if (name) socket.emit("room:setDisplayName", { roomCode, name });
     }
 
     function onDisconnect() {
