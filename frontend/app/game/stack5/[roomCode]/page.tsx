@@ -106,7 +106,10 @@ export default function Stack5Page() {
   const [startingMC, setStartingMC] = useState(2);
   const [turnTimer, setTurnTimer] = useState(30);
   const [numDecks, setNumDecks] = useState(1);
-  const [myName, setMyName] = useState("");
+  const [myName, setMyName] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return sessionStorage.getItem("gamehub:pendingName") ?? localStorage.getItem("gamehub:name") ?? "";
+  });
   const [isHost, setIsHost] = useState(false);
   const [lobbyPlayers, setLobbyPlayers] = useState<{ id: string; name: string }[]>([]);
 
@@ -125,6 +128,7 @@ export default function Stack5Page() {
 
   function handleNameChange(name: string) {
     setMyName(name);
+    if (typeof window !== "undefined") localStorage.setItem("gamehub:name", name);
     getSocket().emit("room:setDisplayName", { roomCode, name });
   }
 
@@ -137,6 +141,9 @@ export default function Stack5Page() {
       setSocketId(socket.id ?? "");
       if (socket.id) sessionStorage.setItem(`gamehub:socket:${roomCode}`, socket.id);
       socket.emit("stack5:getState", { roomCode });
+      // Push pre-entered name from lobby immediately on connect
+      const pending = sessionStorage.getItem("gamehub:pendingName");
+      if (pending) socket.emit("room:setDisplayName", { roomCode, name: pending });
     }
     function onState(s: Stack5State) {
       const prev = stateRef.current;
@@ -169,6 +176,9 @@ export default function Stack5Page() {
     socket.on("roomUpdated", onRoomUpdated);
     socket.emit("stack5:getState", { roomCode });
     socket.emit("getRoom", { roomCode });
+    // Send name if already connected (socket was open before this page mounted)
+    const pending = sessionStorage.getItem("gamehub:pendingName");
+    if (pending && socket.connected) socket.emit("room:setDisplayName", { roomCode, name: pending });
 
     return () => {
       socket.off("connect", onConnect);

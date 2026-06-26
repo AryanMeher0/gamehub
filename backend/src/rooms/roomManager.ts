@@ -153,9 +153,35 @@ function getRoomCodeByPlayer(socketId: string): string | null {
   return Object.values(rooms).find((r) => r.players[socketId])?.roomCode ?? null;
 }
 
+export type RoomSummary = {
+  roomCode: string;
+  playerCount: number;
+  gameId: string | null;
+  status: "waiting" | "playing";
+  playerNames: string[];
+  createdAt: number;
+};
+
+function getAllRooms(): RoomSummary[] {
+  return Object.values(rooms)
+    .filter((r) => Object.keys(r.players).length > 0)
+    .map((r) => {
+      const activePlayers = Object.values(r.players).filter((p) => !p.disconnected);
+      return {
+        roomCode: r.roomCode,
+        playerCount: activePlayers.length,
+        gameId: r.selectedGameId,
+        status: (r.selectedGameId ? "playing" : "waiting") as "waiting" | "playing",
+        playerNames: activePlayers.map((p) => (p as Player & { displayName?: string }).displayName ?? "Player"),
+        createdAt: r.createdAt,
+      };
+    })
+    .sort((a, b) => b.createdAt - a.createdAt);
+}
+
 export {
   createRoom, joinRoom, leaveRoom,
   disconnectPlayer, reconnectPlayer, restoreRoom,
   setReady, selectGame, getRoom, getRoomByPlayer, getRoomCodeByPlayer,
-  removeBot, setBotDifficulty,
+  removeBot, setBotDifficulty, getAllRooms,
 };

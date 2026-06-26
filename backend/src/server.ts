@@ -6,7 +6,7 @@ import healthRouter from "./routes/health";
 import {
   createRoom, joinRoom, leaveRoom, disconnectPlayer, reconnectPlayer, restoreRoom,
   setReady, selectGame, getRoomByPlayer, getRoomCodeByPlayer, getRoom,
-  removeBot, setBotDifficulty,
+  removeBot, setBotDifficulty, getAllRooms,
 } from "./rooms/roomManager";
 import { initBotScheduler, scheduleBotActions } from "./bots/botScheduler";
 import {
@@ -180,6 +180,11 @@ io.on("connection", (socket) => {
     console.log(`[restore] Room ${roomCode} restored by ${socket.id}`);
   });
 
+  // ── ROOM LIST ─────────────────────────────────────────────────────────────
+  socket.on("rooms:getList", () => {
+    socket.emit("rooms:list", getAllRooms());
+  });
+
   // ── CREATE ROOM ───────────────────────────────────────────────────────────
   socket.on("createRoom", () => {
     const room = createRoom(socket.id);
@@ -187,6 +192,7 @@ io.on("connection", (socket) => {
     socket.join(rc);
     console.log(`Room created: ${rc} by ${socket.id}`);
     socket.emit("roomUpdated", { ...room, roomCode: rc });
+    io.emit("rooms:list", getAllRooms());
   });
 
   // ── JOIN ROOM ─────────────────────────────────────────────────────────────
@@ -199,6 +205,7 @@ io.on("connection", (socket) => {
     socket.join(roomCode.toUpperCase());
     console.log(`Player ${socket.id} joined room: ${roomCode}`);
     io.to(roomCode.toUpperCase()).emit("roomUpdated", result.room);
+    io.emit("rooms:list", getAllRooms());
   });
 
   // ── LEAVE ROOM ────────────────────────────────────────────────────────────
@@ -207,6 +214,7 @@ io.on("connection", (socket) => {
     socket.leave(roomCode);
     console.log(`Player ${socket.id} left room: ${roomCode}`);
     if (updatedRoom) io.to(roomCode).emit("roomUpdated", updatedRoom);
+    io.emit("rooms:list", getAllRooms());
   });
 
   // ── PLAYER READY ──────────────────────────────────────────────────────────
@@ -551,6 +559,7 @@ io.on("connection", (socket) => {
     if (!trimmed) return;
     room.players[socket.id].displayName = trimmed;
     io.to(rc).emit("roomUpdated", room);
+    io.emit("rooms:list", getAllRooms());
   });
 
   // ── STACK5: GET STATE ─────────────────────────────────────────────────────
