@@ -133,7 +133,7 @@ function TileContent({
         <div className="w-full h-full flex flex-col items-center justify-center gap-[2px]">
           <span className="text-[20px] leading-none">{cornerIcon[space.type] ?? ""}</span>
           <p
-            className="text-white font-black text-center leading-[1.15] whitespace-pre-line tracking-wide"
+            className="text-white font-bold text-center leading-[1.15] whitespace-pre-line"
             style={{ fontSize: "clamp(7px, 1.6vw, 14px)" }}
           >
             {cornerLabel[space.type] ?? space.name}
@@ -161,15 +161,14 @@ function TileContent({
         <>
           {/* Name */}
           <p
-            className="text-white font-black text-center w-full overflow-hidden tracking-tight"
+            className="text-gray-100 font-medium text-center w-full overflow-hidden"
             style={{
-              fontSize: "clamp(5.5px, 1vw, 9px)",
-              lineHeight: 1.2,
+              fontSize: "clamp(5px, 0.95vw, 8.5px)",
+              lineHeight: 1.18,
               display: "-webkit-box",
               WebkitLineClamp: isHorizontal ? 2 : 3,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              textShadow: "0 1px 2px rgba(0,0,0,0.8)",
             }}
             title={space.name}
           >
@@ -213,17 +212,17 @@ function TileContent({
           {/* Price / rent / tax */}
           <div className="shrink-0 text-center">
             {space.price !== undefined && !ownership && (
-              <p className="text-amber-200 font-black" style={{ fontSize: "clamp(5px, 0.8vw, 8px)" }}>
+              <p className="text-amber-200 font-semibold" style={{ fontSize: "clamp(5px, 0.8vw, 8px)" }}>
                 ${space.price}
               </p>
             )}
             {space.tax !== undefined && (
-              <p className="text-red-300 font-black" style={{ fontSize: "clamp(5px, 0.8vw, 8px)" }}>
+              <p className="text-red-300 font-semibold" style={{ fontSize: "clamp(5px, 0.8vw, 8px)" }}>
                 -${space.tax}
               </p>
             )}
             {ownership && (
-              <p className="text-cyan-200 font-black" style={{ fontSize: "clamp(5px, 0.8vw, 8px)" }}>
+              <p className="text-cyan-200 font-semibold" style={{ fontSize: "clamp(5px, 0.8vw, 8px)" }}>
                 R:${ownership.rent}
               </p>
             )}
