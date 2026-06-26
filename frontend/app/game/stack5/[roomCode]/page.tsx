@@ -696,7 +696,7 @@ function DiscardPile({ topCard, count }: { topCard: Stack5Card | null; count: nu
 
 // ─── StackCard ────────────────────────────────────────────────────────────────
 
-function StackCard({ card }: { card: Stack5Card }) {
+function StackCard({ card, mini }: { card: Stack5Card; mini?: boolean }) {
   const overlay =
     card.type === "standard"
       ? SHAPE_EMOJI[card.shape!]
@@ -705,10 +705,10 @@ function StackCard({ card }: { card: Stack5Card }) {
       : card.type === "reverse" ? "↕"
       : "🗑";
   return (
-    <div className="relative h-12 w-8 rounded-lg overflow-hidden shadow-md border border-black/20">
+    <div className={`relative ${mini ? "h-9 w-6" : "h-14 w-10"} rounded-md overflow-hidden shadow-md border border-black/20 shrink-0`}>
       <img src={cardImageSrc(card)} alt={cardAlt(card)} className="h-full w-full object-cover" draggable={false} />
       <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/60 py-0.5">
-        <span className="text-[9px] leading-none">{overlay}</span>
+        <span className={`${mini ? "text-[7px]" : "text-[10px]"} leading-none`}>{overlay}</span>
       </div>
     </div>
   );
@@ -746,12 +746,9 @@ function MyStackSlot({ stack, canDrop, isSelectMode, canSecure, onClick, onSecur
             : <span className="text-[10px] text-gray-700">Empty</span>}
         </div>
       ) : (
-        /* Overlapping pile — proper card ratio, centered */
-        <div className="relative flex-1 flex justify-center" style={{ minHeight: `${stack.cards.length * 16 + 40}px` }}>
+        <div className="flex flex-row flex-wrap gap-1 justify-center py-1">
           {stack.cards.map((card, i) => (
-            <div key={i} className="absolute" style={{ top: `${i * 16}px`, zIndex: i }}>
-              <StackCard card={card} />
-            </div>
+            <StackCard key={i} card={card} />
           ))}
         </div>
       )}
@@ -810,36 +807,32 @@ function OpponentPanel({ player, isCurrentTurn, stealMode, myMasterCards, onStea
         </div>
       </div>
 
-      {/* Stacks — overlapping card piles */}
-      <div className="grid grid-cols-4 gap-1.5">
+      {/* Stacks — side-by-side rows */}
+      <div className="flex flex-col gap-1.5">
         {player.stacks.map((stack) => {
           const canSteal = stealMode && stack.cards.length > 0 && myMasterCards > 0;
-          const pileH = Math.max(40, stack.cards.length * 12 + 20);
           return (
             <div key={stack.slotIndex}
               onClick={canSteal ? () => onSteal(stack.slotIndex) : undefined}
-              className={`rounded-xl border p-1 transition-all ${
+              className={`flex flex-row items-center gap-1.5 rounded-xl border px-2 py-1.5 transition-all ${
                 canSteal
                   ? "cursor-pointer border-red-500/60 bg-red-950/30 ring-1 ring-red-500/40 hover:bg-red-950/50"
                   : stack.completed ? "border-amber-600/60 bg-amber-950/20"
                   : "border-gray-800 bg-gray-950/50"
               }`}
-              style={{ minHeight: `${pileH + 20}px` }}
             >
-              <p className="text-[7px] text-gray-600 text-center mb-0.5">{stack.cards.length}/5</p>
-              <div className="relative flex justify-center" style={{ height: `${pileH}px` }}>
-                {stack.cards.map((card, i) => (
-                  <div key={i} className="absolute" style={{ top: `${i * 12}px`, zIndex: i }}>
-                    <StackCard card={card} />
-                  </div>
-                ))}
+              <span className="text-[7px] text-gray-600 w-3 shrink-0">{stack.slotIndex + 1}</span>
+              <div className="flex flex-row gap-0.5 flex-1">
+                {stack.cards.length === 0
+                  ? <span className="text-[8px] text-gray-700 italic">empty</span>
+                  : stack.cards.map((card, i) => <StackCard key={i} card={card} mini />)
+                }
               </div>
-              {stack.completed && (
-                <p className="text-center text-[8px] font-black text-amber-400 mt-1">★</p>
-              )}
-              {stack.matchType && (
-                <p className="text-center text-[6px] text-gray-600 capitalize mt-0.5">{stack.matchValue}</p>
-              )}
+              <div className="flex flex-col items-end shrink-0 gap-0.5">
+                <span className="text-[7px] text-gray-600">{stack.cards.length}/5</span>
+                {stack.completed && <span className="text-[8px] text-amber-400 font-black">★</span>}
+                {stack.matchType && <span className="text-[6px] text-gray-600 capitalize">{stack.matchValue}</span>}
+              </div>
             </div>
           );
         })}
