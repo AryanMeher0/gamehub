@@ -73,7 +73,7 @@ function s5StartTimer(roomCode: string) {
 
 const PORT = process.env.PORT || 4000;
 
-app.use(cors({ origin: "http://localhost:3000" }));
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 app.get("/", (_req, res) => {
