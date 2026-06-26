@@ -427,8 +427,18 @@ export default function Stack5Page() {
             📋 Log
           </button>
           {socketId === state.hostId && (
-            <button onClick={() => router.push(`/game/stack5/${roomCode}/operator`)}
-              className="text-xs text-indigo-400 hover:text-indigo-300">⚙️</button>
+            <>
+              <button onClick={() => emit("stack5:operator:shuffleDeck")}
+                className="text-xs px-2 py-1 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all">
+                Shuffle Deck
+              </button>
+              <button onClick={() => emit("stack5:operator:transferDiscard")}
+                className="text-xs px-2 py-1 rounded-lg bg-gray-800 text-gray-300 hover:bg-gray-700 transition-all">
+                Transfer Discard
+              </button>
+              <button onClick={() => router.push(`/game/stack5/${roomCode}/operator`)}
+                className="text-xs text-indigo-400 hover:text-indigo-300">⚙️</button>
+            </>
           )}
           <button onClick={() => { getSocket().emit("leaveRoom", { roomCode }); router.push("/"); }}
             className="text-xs text-gray-600 hover:text-gray-400">Leave</button>
@@ -459,7 +469,7 @@ export default function Stack5Page() {
       {mode.type === "steal_mode" && (
         <div className="fixed top-12 inset-x-0 z-30 flex justify-center pointer-events-none">
           <div className="pointer-events-auto mt-2 flex items-center gap-3 rounded-2xl border border-red-600/60 bg-red-950/90 px-5 py-2 shadow-2xl">
-            <span className="text-sm font-black text-red-300">Click an opponent&apos;s stack to steal</span>
+            <span className="text-sm font-black text-red-300">Click an opponent&apos;s stack to steal — costs 1 Master Card</span>
             <button onClick={() => setMode({ type: "idle" })} className="text-xs text-red-600 hover:text-red-400">Cancel</button>
           </div>
         </div>
@@ -534,15 +544,15 @@ export default function Stack5Page() {
                 <div className="flex items-center gap-4">
                   <div className="text-center">
                     <p className="text-xl font-black text-amber-400">{me.points}<span className="text-sm text-gray-600">/{state.targetScore}</span></p>
-                    <p className="text-[8px] text-gray-600">POINTS</p>
+                    <p className="text-[8px] text-gray-600">Points Scored</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xl font-black text-indigo-300">{me.masterCards}</p>
-                    <p className="text-[8px] text-gray-600">MC</p>
+                    <p className="text-[8px] text-gray-600">Master Cards</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xl font-black">{me.hand.length}</p>
-                    <p className="text-[8px] text-gray-600">CARDS</p>
+                    <p className="text-[8px] text-gray-600">Cards in Hand</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -611,12 +621,12 @@ export default function Stack5Page() {
                     </>
                   ) : (
                     <ActionBtn onClick={() => canAct && setMode({ type: "trade_mode", selectedIds: [] })} disabled={!canAct}>
-                      Trade 4 → MC
+                      Trade 4 → Master Card
                     </ActionBtn>
                   )}
                   {me.masterCards > 0 && mode.type !== "steal_mode" && (
                     <ActionBtn onClick={() => canAct && setMode({ type: "steal_mode" })} disabled={!canAct} variant="red">
-                      🗡️ Steal
+                      🗡️ Steal (costs 1 Master Card)
                     </ActionBtn>
                   )}
                   <ActionBtn onClick={handleEndTurn} variant="ghost">End Turn</ActionBtn>
@@ -697,19 +707,9 @@ function DiscardPile({ topCard, count }: { topCard: Stack5Card | null; count: nu
 // ─── StackCard ────────────────────────────────────────────────────────────────
 
 function StackCard({ card, mini }: { card: Stack5Card; mini?: boolean }) {
-  const overlay =
-    card.type === "standard"
-      ? SHAPE_EMOJI[card.shape!]
-      : card.type === "wild" ? "✨"
-      : card.type === "skip" ? "⊘"
-      : card.type === "reverse" ? "↕"
-      : "🗑";
   return (
     <div className={`relative ${mini ? "h-9 w-6" : "h-14 w-10"} rounded-md overflow-hidden shadow-md border border-black/20 shrink-0`}>
       <img src={cardImageSrc(card)} alt={cardAlt(card)} className="h-full w-full object-cover" draggable={false} />
-      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/60 py-0.5">
-        <span className={`${mini ? "text-[7px]" : "text-[10px]"} leading-none`}>{overlay}</span>
-      </div>
     </div>
   );
 }
@@ -765,7 +765,7 @@ function MyStackSlot({ stack, canDrop, isSelectMode, canSecure, onClick, onSecur
           {canSecure && (
             <button onClick={(e) => { e.stopPropagation(); onSecure(); }}
               className="rounded-lg bg-amber-500 px-2 py-0.5 text-[8px] font-black text-gray-950 hover:bg-amber-400 active:scale-95 transition-all">
-              Secure (1 MC)
+              Secure (costs 1 Master Card)
             </button>
           )}
         </div>
@@ -795,15 +795,15 @@ function OpponentPanel({ player, isCurrentTurn, stealMode, myMasterCards, onStea
       <div className="grid grid-cols-3 gap-1.5 mb-3">
         <div className="rounded-xl bg-gray-800/60 py-1.5 text-center">
           <p className="text-base font-black text-amber-400">{player.points}</p>
-          <p className="text-[8px] text-gray-500">PTS</p>
+          <p className="text-[8px] text-gray-500">Points</p>
         </div>
         <div className="rounded-xl bg-gray-800/60 py-1.5 text-center">
           <p className="text-base font-black text-indigo-300">{player.masterCards}</p>
-          <p className="text-[8px] text-gray-500">MC</p>
+          <p className="text-[8px] text-gray-500">Master Cards</p>
         </div>
         <div className="rounded-xl bg-gray-800/60 py-1.5 text-center">
           <p className="text-base font-black">{player.hand.length}</p>
-          <p className="text-[8px] text-gray-500">CARDS</p>
+          <p className="text-[8px] text-gray-500">Cards in Hand</p>
         </div>
       </div>
 

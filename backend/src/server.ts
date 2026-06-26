@@ -23,6 +23,7 @@ import {
   saveHistory as s5SaveHistory, undoAction as s5Undo,
   operatorForceNextTurn as s5OpForceNext, operatorGiveMC as s5OpGiveMC,
   operatorClearStack as s5OpClearStack, operatorEndGame as s5OpEndGame,
+  operatorShuffleDeck as s5OpShuffleDeck, operatorTransferDiscard as s5OpTransferDiscard,
   PlayCardInput,
 } from "./games/stack5/gameManager";
 import { CardColor, CardShape } from "./games/stack5/types";
@@ -688,6 +689,24 @@ io.on("connection", (socket) => {
     if (error) { socket.emit("stack5:error", { message: error }); return; }
     io.to(rc).emit("stack5:stateUpdated", state);
     s5ClearTimer(rc);
+  });
+
+  socket.on("stack5:operator:shuffleDeck", ({ roomCode }: { roomCode: string }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || room.host !== socket.id) { socket.emit("stack5:error", { message: "Host only" }); return; }
+    const { state, error } = s5OpShuffleDeck(rc);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
+  });
+
+  socket.on("stack5:operator:transferDiscard", ({ roomCode }: { roomCode: string }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || room.host !== socket.id) { socket.emit("stack5:error", { message: "Host only" }); return; }
+    const { state, error } = s5OpTransferDiscard(rc);
+    if (error) { socket.emit("stack5:error", { message: error }); return; }
+    io.to(rc).emit("stack5:stateUpdated", state);
   });
 
   // ── DISCONNECT ────────────────────────────────────────────────────────────

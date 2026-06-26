@@ -560,6 +560,25 @@ function operatorEndGame(roomCode: string, winnerId: string): { state: Stack5Sta
   return { state };
 }
 
+function operatorShuffleDeck(roomCode: string): { state: Stack5State; error?: string } {
+  const state = games[roomCode];
+  if (!state) return { state: undefined as unknown as Stack5State, error: "Game not found" };
+  state.drawDeck = shuffle(state.drawDeck);
+  state.log.push("🔧 Operator shuffled the draw deck.");
+  return { state };
+}
+
+function operatorTransferDiscard(roomCode: string): { state: Stack5State; error?: string } {
+  const state = games[roomCode];
+  if (!state) return { state: undefined as unknown as Stack5State, error: "Game not found" };
+  const top = state.discardPile[state.discardPile.length - 1] ?? null;
+  const rest = state.discardPile.slice(0, -1);
+  state.drawDeck = [...state.drawDeck, ...shuffle(rest)];
+  state.discardPile = top ? [top] : [];
+  state.log.push("🔧 Operator moved discard pile into the draw deck.");
+  return { state };
+}
+
 // ─── Getters ──────────────────────────────────────────────────────────────────
 
 function getGame(roomCode: string): Stack5State | null {
@@ -575,5 +594,5 @@ export {
   createGame, drawCard, playCard, tradeForMaster, secure, steal,
   endTurn, forceAdvanceTurn, reassignPlayerId, getGame, deleteGame,
   saveHistory, undoAction, operatorForceNextTurn, operatorGiveMC,
-  operatorClearStack, operatorEndGame,
+  operatorClearStack, operatorEndGame, operatorShuffleDeck, operatorTransferDiscard,
 };
