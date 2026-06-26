@@ -5,9 +5,13 @@ import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
 import { Stack5State, Stack5Player } from "@/types/stack5";
 
+const SPECIAL_FILENAMES: Record<string, string> = {
+  wild: "wild", skip: "skip", reverse: "reverse", reset_hand: "resethand",
+};
+
 function cardImageSrc(card: { type: string; color?: string | null; shape?: string | null }): string {
   if (card.type === "standard") return `/cards/${card.color}_${card.shape}.png`;
-  return `/cards/${card.type}.png`;
+  return `/cards/${SPECIAL_FILENAMES[card.type] ?? card.type}.png`;
 }
 
 export default function Stack5OperatorPage() {

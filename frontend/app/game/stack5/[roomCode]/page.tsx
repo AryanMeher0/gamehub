@@ -37,9 +37,13 @@ const SHAPE_LABEL: Record<CardShape, string> = {
 const COLORS: CardColor[] = ["green", "yellow", "pink", "blue"];
 const SHAPES: CardShape[] = ["flower", "lightning", "star", "drop"];
 
+const SPECIAL_FILENAMES: Record<string, string> = {
+  wild: "wild", skip: "skip", reverse: "reverse", reset_hand: "resethand",
+};
+
 function cardImageSrc(card: Stack5Card): string {
   if (card.type === "standard") return `/cards/${card.color}_${card.shape}.png`;
-  return `/cards/${card.type}.png`;
+  return `/cards/${SPECIAL_FILENAMES[card.type] ?? card.type}.png`;
 }
 
 function cardAlt(card: Stack5Card): string {
@@ -766,7 +770,7 @@ function WildPicker({ onPick, onCancel }: { onPick: (c: CardColor, s: CardShape)
         </div>
         <div className="mb-4 flex justify-center">
           <div className="h-28 w-20 rounded-2xl overflow-hidden border-2 border-indigo-400 shadow-lg">
-            <img src={`/cards/${color}_${shape}.png`} alt={`${color} ${shape}`}
+            <img src={cardImageSrc({ id: "", type: "standard", color, shape })} alt={`${color} ${shape}`}
               className="h-full w-full object-cover" draggable={false} />
           </div>
         </div>
