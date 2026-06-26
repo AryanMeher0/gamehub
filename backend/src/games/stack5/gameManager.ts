@@ -1,5 +1,5 @@
 import { Stack5State, Stack5Player, Stack5Stack, Stack5Card, CardColor, CardShape } from "./types";
-import { buildDeck, reshuffleDiscard } from "./cards";
+import { buildDeck, reshuffleDiscard, shuffle } from "./cards";
 
 const PLAYER_COLORS = ["#ef4444", "#3b82f6", "#22c55e", "#f59e0b", "#a855f7", "#f97316"];
 const STARTING_HAND = 5;
@@ -158,10 +158,14 @@ function createGame(
   targetScore: number,
   startingMasterCards: number,
   turnTimerSeconds = 0,
-  hostId = ""
+  hostId = "",
+  numDecks = 1
 ): Stack5State {
   const playerIds = Object.keys(roomPlayers);
-  const deck = buildDeck();
+  let deckCards = buildDeck(0);
+  for (let d = 1; d < numDecks; d++) deckCards = [...deckCards, ...buildDeck(d)];
+  if (numDecks > 1) deckCards = shuffle(deckCards);
+  const deck = deckCards;
   const players: Record<string, Stack5Player> = {};
 
   playerIds.forEach((id, i) => {

@@ -95,23 +95,33 @@ export default function Stack5Page() {
   const [error, setError] = useState("");
   const [mode, setMode] = useState<UIMode>({ type: "idle" });
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const [showLog, setShowLog] = useState(false);
   const stateRef = useRef<Stack5State | null>(null);
 
   // Setup config
   const [targetScore, setTargetScore] = useState(3);
   const [startingMC, setStartingMC] = useState(2);
   const [turnTimer, setTurnTimer] = useState(30);
+  const [numDecks, setNumDecks] = useState(1);
+  const [myName, setMyName] = useState("");
+  const [isHost, setIsHost] = useState(false);
+  const [lobbyPlayers, setLobbyPlayers] = useState<{ id: string; name: string }[]>([]);
 
   const errorTimer = useRef<ReturnType<typeof setTimeout>>();
 
   function showError(msg: string) {
     setError(msg);
     clearTimeout(errorTimer.current);
-    errorTimer.current = setTimeout(() => setError(""), 3000);
+    errorTimer.current = setTimeout(() => setError(""), 3500);
   }
 
   function emit(event: string, payload?: Record<string, unknown>) {
     getSocket().emit(event, { roomCode, ...payload });
+  }
+
+  function handleNameChange(name: string) {
+    setMyName(name);
+    getSocket().emit("room:setDisplayName", { roomCode, name });
   }
 
   useEffect(() => {
@@ -131,18 +141,29 @@ export default function Stack5Page() {
     }
     function onError(d: { message: string }) { showError(d.message); }
     function onReconnected() { socket.emit("stack5:getState", { roomCode }); }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function onRoomUpdated(room: any) {
+      if (!room) return;
+      setIsHost(room.host === socket.id);
+      const players = Object.entries(room.players as Record<string, { displayName?: string }>)
+        .map(([id, p]) => ({ id, name: p.displayName ?? id.slice(0, 6) }));
+      setLobbyPlayers(players);
+    }
 
     socket.on("connect", onConnect);
     socket.on("stack5:stateUpdated", onState);
     socket.on("stack5:error", onError);
     socket.on("game:reconnected", onReconnected);
+    socket.on("roomUpdated", onRoomUpdated);
     socket.emit("stack5:getState", { roomCode });
+    socket.emit("getRoom", { roomCode });
 
     return () => {
       socket.off("connect", onConnect);
       socket.off("stack5:stateUpdated", onState);
       socket.off("stack5:error", onError);
       socket.off("game:reconnected", onReconnected);
+      socket.off("roomUpdated", onRoomUpdated);
     };
   }, [roomCode]);
 
@@ -230,68 +251,115 @@ export default function Stack5Page() {
   }
 
   function handleConfigure() {
-    emit("stack5:configure", { targetScore, startingMasterCards: startingMC, turnTimerSeconds: turnTimer });
+    emit("stack5:configure", { targetScore, startingMasterCards: startingMC, turnTimerSeconds: turnTimer, numDecks });
   }
 
-  // ─── Setup screen ──────────────────────────────────────────────────────────
+  // ─── Setup / Waiting screen ────────────────────────────────────────────────
 
   if (!state) {
     return (
-      <main className="flex min-h-screen flex-col items-center justify-center gap-6 bg-gray-950 px-4 text-white">
+      <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-950 px-4 text-white">
         <div className="text-center">
-          <span className="text-6xl">🧱</span>
-          <h1 className="mt-2 text-3xl font-black text-indigo-400">Stack5</h1>
-          <p className="mt-1 text-xs text-gray-600 font-mono">{roomCode}</p>
+          <span className="text-5xl">🧱</span>
+          <h1 className="mt-1 text-3xl font-black text-indigo-400">Stack5</h1>
+          <p className="text-xs text-gray-600 font-mono">{roomCode}</p>
         </div>
 
-        <div className="w-full max-w-sm rounded-3xl border border-gray-800 bg-gray-900 p-6 shadow-2xl">
-          <h2 className="mb-5 text-center text-xl font-black">Create Game</h2>
-
-          <div className="mb-5">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">Points to Win</p>
-            <div className="grid grid-cols-3 gap-2">
-              {[2, 3, 4].map((n) => (
-                <button key={n} onClick={() => setTargetScore(n)}
-                  className={`rounded-2xl py-3 font-black transition-all ${targetScore === n ? "bg-indigo-600 text-white scale-105" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
-                  {n} pts
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-5">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">Starting Master Cards</p>
-            <div className="grid grid-cols-4 gap-2">
-              {[1, 2, 3, 4].map((n) => (
-                <button key={n} onClick={() => setStartingMC(n)}
-                  className={`rounded-2xl py-3 font-black transition-all ${startingMC === n ? "bg-amber-500 text-gray-950 scale-105" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
-                  {n}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-6">
-            <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">Turn Timer</p>
-            <div className="grid grid-cols-4 gap-2">
-              {[0, 15, 30, 60].map((n) => (
-                <button key={n} onClick={() => setTurnTimer(n)}
-                  className={`rounded-2xl py-3 text-sm font-black transition-all ${turnTimer === n ? "bg-cyan-600 text-white scale-105" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
-                  {n === 0 ? "Off" : `${n}s`}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="mb-4 rounded-xl bg-gray-800 px-4 py-2 text-center text-xs text-gray-500">
-            Players: 2–4 · First to {targetScore} pts · {startingMC} MC each{turnTimer > 0 ? ` · ${turnTimer}s timer` : ""}
-          </div>
-
-          <button onClick={handleConfigure}
-            className="w-full rounded-2xl bg-indigo-600 py-4 text-lg font-black hover:bg-indigo-500 active:scale-95 transition-all">
-            Start Game →
-          </button>
+        {/* Name input — all players */}
+        <div className="w-full max-w-sm">
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-widest text-gray-500">Your Name</p>
+          <input
+            type="text" maxLength={20} value={myName}
+            onChange={(e) => handleNameChange(e.target.value)}
+            placeholder="Enter your name…"
+            className="w-full rounded-2xl bg-gray-800 border border-gray-700 px-4 py-3 text-sm font-bold placeholder-gray-600 focus:border-indigo-500 focus:outline-none"
+          />
         </div>
+
+        {isHost ? (
+          /* ── Host: config form ── */
+          <div className="w-full max-w-sm rounded-3xl border border-gray-800 bg-gray-900 p-5 shadow-2xl">
+            <h2 className="mb-4 text-center text-lg font-black">Create Game</h2>
+
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">Points to Win</p>
+              <div className="grid grid-cols-3 gap-2">
+                {[2, 3, 4].map((n) => (
+                  <button key={n} onClick={() => setTargetScore(n)}
+                    className={`rounded-2xl py-2.5 font-black transition-all ${targetScore === n ? "bg-indigo-600 text-white scale-105" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                    {n} pts
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">Starting Master Cards</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[1, 2, 3, 4].map((n) => (
+                  <button key={n} onClick={() => setStartingMC(n)}
+                    className={`rounded-2xl py-2.5 font-black transition-all ${startingMC === n ? "bg-amber-500 text-gray-950 scale-105" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                    {n}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-4">
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">Turn Timer</p>
+              <div className="grid grid-cols-4 gap-2">
+                {[0, 15, 30, 60].map((n) => (
+                  <button key={n} onClick={() => setTurnTimer(n)}
+                    className={`rounded-2xl py-2.5 text-sm font-black transition-all ${turnTimer === n ? "bg-cyan-600 text-white scale-105" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                    {n === 0 ? "Off" : `${n}s`}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-gray-500">Number of Decks</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[1, 2].map((n) => (
+                  <button key={n} onClick={() => setNumDecks(n)}
+                    className={`rounded-2xl py-2.5 font-black transition-all ${numDecks === n ? "bg-purple-600 text-white scale-105" : "bg-gray-800 text-gray-400 hover:bg-gray-700"}`}>
+                    {n} Deck{n > 1 ? "s" : ""} ({n * 100} cards)
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {lobbyPlayers.length > 0 && (
+              <div className="mb-4 rounded-xl bg-gray-800/60 px-3 py-2">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-gray-600 mb-1.5">In Lobby</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {lobbyPlayers.map((p) => (
+                    <span key={p.id} className="rounded-full bg-gray-700 px-2 py-0.5 text-xs">{p.name}</span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button onClick={handleConfigure}
+              className="w-full rounded-2xl bg-indigo-600 py-3.5 text-lg font-black hover:bg-indigo-500 active:scale-95 transition-all">
+              Start Game →
+            </button>
+          </div>
+        ) : (
+          /* ── Non-host: waiting ── */
+          <div className="w-full max-w-sm rounded-3xl border border-gray-800 bg-gray-900 p-6 text-center">
+            <div className="mb-3 text-3xl animate-pulse">⏳</div>
+            <p className="font-black text-lg mb-1">Waiting for host to start…</p>
+            <p className="text-xs text-gray-500 mb-4">Your name is set — the host will start the game.</p>
+            {lobbyPlayers.length > 0 && (
+              <div className="flex flex-wrap justify-center gap-1.5">
+                {lobbyPlayers.map((p) => (
+                  <span key={p.id} className="rounded-full bg-gray-800 px-3 py-1 text-xs font-bold">{p.name}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         <button onClick={() => { getSocket().emit("leaveRoom", { roomCode }); router.push("/"); }}
           className="text-sm text-gray-600 hover:text-gray-400">Leave room</button>
@@ -334,30 +402,33 @@ export default function Stack5Page() {
   const currentTurnPlayer = state.players[state.turnOrder[state.currentTurnIndex]];
 
   return (
-    <main className="flex min-h-screen flex-col bg-gray-950 text-white overflow-hidden">
+    <main className="flex h-screen flex-col bg-gray-950 text-white overflow-hidden">
 
       {/* ── Header ── */}
-      <header className="flex shrink-0 items-center justify-between border-b border-gray-800/60 bg-gray-900/80 px-4 py-2.5 backdrop-blur">
+      <header className="flex shrink-0 items-center justify-between border-b border-gray-800/60 bg-gray-900/80 px-3 py-2 backdrop-blur">
         <div className="flex items-center gap-2">
           <span className="font-black text-indigo-400">Stack5</span>
           <span className="rounded-full bg-gray-800 px-2 py-0.5 font-mono text-xs text-gray-500">{roomCode}</span>
         </div>
-        {/* Turn banner */}
         <div className="flex flex-col items-center">
           {isMyTurn ? (
             <span className="rounded-full bg-green-600/20 border border-green-500/40 px-3 py-0.5 text-xs font-black text-green-400">
-              YOUR TURN · {state.actionsRemaining} action{state.actionsRemaining !== 1 ? "s" : ""} left
+              YOUR TURN · {state.actionsRemaining} left
             </span>
           ) : (
             <span className="text-xs text-gray-500">
-              {currentTurnPlayer?.name}&apos;s turn · {state.actionsRemaining} action{state.actionsRemaining !== 1 ? "s" : ""}
+              {currentTurnPlayer?.name}&apos;s turn
             </span>
           )}
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setShowLog((v) => !v)}
+            className={`text-xs px-2 py-1 rounded-lg transition-all ${showLog ? "bg-indigo-700 text-white" : "text-gray-500 hover:text-gray-300"}`}>
+            📋 Log
+          </button>
           {socketId === state.hostId && (
             <button onClick={() => router.push(`/game/stack5/${roomCode}/operator`)}
-              className="text-xs text-indigo-400 hover:text-indigo-300">⚙️ Operator</button>
+              className="text-xs text-indigo-400 hover:text-indigo-300">⚙️</button>
           )}
           <button onClick={() => { getSocket().emit("leaveRoom", { roomCode }); router.push("/"); }}
             className="text-xs text-gray-600 hover:text-gray-400">Leave</button>
@@ -386,149 +457,170 @@ export default function Stack5Page() {
 
       {/* ── Steal hint banner ── */}
       {mode.type === "steal_mode" && (
-        <div className="fixed top-14 inset-x-0 z-30 flex justify-center pointer-events-none">
-          <div className="pointer-events-auto mt-2 flex items-center gap-3 rounded-2xl border border-red-600/60 bg-red-950/90 px-5 py-2.5 shadow-2xl">
+        <div className="fixed top-12 inset-x-0 z-30 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto mt-2 flex items-center gap-3 rounded-2xl border border-red-600/60 bg-red-950/90 px-5 py-2 shadow-2xl">
             <span className="text-sm font-black text-red-300">Click an opponent&apos;s stack to steal</span>
             <button onClick={() => setMode({ type: "idle" })} className="text-xs text-red-600 hover:text-red-400">Cancel</button>
           </div>
         </div>
       )}
 
-      {/* ── Scrollable game area ── */}
-      <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-3">
+      {/* ── Main flex area: log + game ── */}
+      <div className="flex flex-1 overflow-hidden">
 
-        {/* ── Opponents ── */}
-        {opponents.length > 0 && (
-          <div className={`grid gap-2 ${opponents.length === 1 ? "grid-cols-1 max-w-lg mx-auto w-full" : opponents.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
-            {opponents.map((opp) => (
-              <OpponentPanel
-                key={opp.id}
-                player={opp}
-                isCurrentTurn={state.turnOrder[state.currentTurnIndex] === opp.id}
-                stealMode={mode.type === "steal_mode"}
-                myMasterCards={me?.masterCards ?? 0}
-                onSteal={(si) => handleStealTarget(opp.id, si)}
-              />
-            ))}
+        {/* Log sidebar */}
+        {showLog && (
+          <div className="w-52 shrink-0 border-r border-gray-800/60 bg-gray-900/60 flex flex-col overflow-hidden">
+            <div className="px-3 py-2 border-b border-gray-800/60">
+              <p className="text-[9px] font-black uppercase tracking-widest text-gray-500">Game Log</p>
+            </div>
+            <div className="flex-1 overflow-y-auto flex flex-col-reverse px-2 py-1 gap-0.5">
+              {[...state.log].reverse().map((entry, i) => (
+                <p key={i} className={`text-[10px] py-1 border-b border-gray-800/40 last:border-0 ${
+                  entry.startsWith("🏅") || entry.startsWith("⭐") ? "text-amber-400" :
+                  entry.startsWith("🗡️") ? "text-red-400" :
+                  entry.startsWith("♻️") ? "text-cyan-400" :
+                  entry.startsWith("⏰") ? "text-orange-400" :
+                  entry.startsWith("🏆") ? "text-yellow-300 font-black" :
+                  "text-gray-400"
+                }`}>{entry}</p>
+              ))}
+            </div>
           </div>
         )}
 
-        {/* ── Center: deck / info / discard ── */}
-        <div className="flex items-center justify-center gap-5 py-1">
-          <DeckPile count={state.drawDeck.length} />
+        {/* Game area */}
+        <div className="flex flex-1 flex-col gap-2 overflow-y-auto p-2">
 
-          <div className="flex flex-col items-center gap-1.5">
-            <TurnTimer timeLeft={timeLeft} total={state.turnTimerSeconds} />
-            <div className="flex items-center gap-1.5 text-[10px] text-gray-600">
-              <span>{state.direction === 1 ? "↻" : "↺"}</span>
-              <span>First to {state.targetScore} pts</span>
+          {/* ── Opponents ── */}
+          {opponents.length > 0 && (
+            <div className={`grid gap-2 ${opponents.length === 1 ? "grid-cols-1 max-w-xl mx-auto w-full" : opponents.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+              {opponents.map((opp) => (
+                <OpponentPanel
+                  key={opp.id}
+                  player={opp}
+                  isCurrentTurn={state.turnOrder[state.currentTurnIndex] === opp.id}
+                  stealMode={mode.type === "steal_mode"}
+                  myMasterCards={me?.masterCards ?? 0}
+                  onSteal={(si) => handleStealTarget(opp.id, si)}
+                />
+              ))}
             </div>
+          )}
+
+          {/* ── Center: deck / timer / discard ── */}
+          <div className="flex items-center justify-center gap-6 py-1 shrink-0">
+            <DeckPile count={state.drawDeck.length} />
+            <div className="flex flex-col items-center gap-1">
+              <TurnTimer timeLeft={timeLeft} total={state.turnTimerSeconds} />
+              <div className="flex items-center gap-1.5 text-[10px] text-gray-600">
+                <span>{state.direction === 1 ? "↻" : "↺"}</span>
+                <span>First to {state.targetScore} pts</span>
+              </div>
+            </div>
+            <DiscardPile topCard={topDiscard} count={state.discardPile.length} />
           </div>
 
-          <DiscardPile topCard={topDiscard} count={state.discardPile.length} />
-        </div>
+          {/* ── My Board ── */}
+          {me && (
+            <div className="rounded-3xl border border-gray-700/60 bg-gray-900/60 p-3 flex flex-col gap-2">
 
-        {/* ── My Board ── */}
-        {me && (
-          <div className="rounded-3xl border border-gray-700/60 bg-gray-900/60 p-3 flex flex-col gap-3">
-
-            {/* My stats + mode info */}
-            <div className="flex items-center justify-between px-1">
-              <div className="flex items-center gap-3 text-sm">
-                <span className="font-black text-amber-400">⭐ {me.points}<span className="text-gray-600">/{state.targetScore}</span></span>
-                <span className="font-bold text-indigo-300">🃏 {me.masterCards} MC</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {isMyTurn && (
-                  <ActionsBar remaining={state.actionsRemaining} />
-                )}
-                {mode.type === "card_selected" && (
-                  <button onClick={() => setMode({ type: "idle" })} className="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
-                )}
-                {mode.type === "trade_mode" && (
-                  <button onClick={() => setMode({ type: "idle" })} className="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
-                )}
-              </div>
-            </div>
-
-            {/* My stacks */}
-            <div className="grid grid-cols-4 gap-2">
-              {me.stacks.map((stack) => {
-                const sel = mode.type === "card_selected" ? me.hand.find((c) => c.id === mode.cardId) : null;
-                const canDrop = !!sel && isValidForStack(stack, sel);
-                return (
-                  <MyStackSlot
-                    key={stack.slotIndex}
-                    stack={stack}
-                    canDrop={canDrop}
-                    isSelectMode={mode.type === "card_selected"}
-                    canSecure={canAct && stack.completed && me.masterCards > 0}
-                    onClick={() => handleSlotClick(stack.slotIndex)}
-                    onSecure={() => handleSecure(stack.slotIndex)}
-                  />
-                );
-              })}
-            </div>
-
-            {/* Hand */}
-            <div>
-              <p className="mb-1.5 px-1 text-[10px] font-bold uppercase tracking-widest text-gray-600">
-                Hand · {me.hand.length} cards
-                {mode.type === "trade_mode" && (
-                  <span className="ml-2 text-indigo-400">
-                    — select 4 cards with {isValidTradeSet(me.hand, mode.selectedIds) ? "✓ 4 unique" : "4 unique"} colors or shapes
-                  </span>
-                )}
-              </p>
-              <div className="flex gap-2 overflow-x-auto pb-2 min-h-[7rem]">
-                {me.hand.length === 0 ? (
-                  <div className="flex flex-1 items-center justify-center text-xs text-gray-700 italic">
-                    Empty hand — draw on your turn
+              {/* My stats */}
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-4">
+                  <div className="text-center">
+                    <p className="text-xl font-black text-amber-400">{me.points}<span className="text-sm text-gray-600">/{state.targetScore}</span></p>
+                    <p className="text-[8px] text-gray-600">POINTS</p>
                   </div>
-                ) : (
-                  me.hand.map((card) => {
-                    const isSelected = (mode.type === "card_selected" && mode.cardId === card.id) ||
-                      (mode.type === "trade_mode" && mode.selectedIds.includes(card.id));
-                    const isDimmed = mode.type === "trade_mode" && card.type !== "standard";
-                    return (
-                      <CardView key={card.id} card={card} selected={isSelected} dimmed={isDimmed}
-                        onClick={() => handleCardClick(card.id)} clickable={canAct} />
-                    );
-                  })
-                )}
+                  <div className="text-center">
+                    <p className="text-xl font-black text-indigo-300">{me.masterCards}</p>
+                    <p className="text-[8px] text-gray-600">MC</p>
+                  </div>
+                  <div className="text-center">
+                    <p className="text-xl font-black">{me.hand.length}</p>
+                    <p className="text-[8px] text-gray-600">CARDS</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {isMyTurn && <ActionsBar remaining={state.actionsRemaining} />}
+                  {(mode.type === "card_selected" || mode.type === "trade_mode") && (
+                    <button onClick={() => setMode({ type: "idle" })} className="text-xs text-gray-500 hover:text-gray-300">Cancel</button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Action buttons */}
-            {isMyTurn && (
-              <div className="flex flex-wrap gap-2 border-t border-gray-800 pt-3">
-                <ActionBtn onClick={handleDraw} disabled={!canAct}>Draw</ActionBtn>
+              {/* My stacks */}
+              <div className="grid grid-cols-4 gap-2">
+                {me.stacks.map((stack) => {
+                  const sel = mode.type === "card_selected" ? me.hand.find((c) => c.id === mode.cardId) : null;
+                  const canDrop = !!sel && isValidForStack(stack, sel);
+                  return (
+                    <MyStackSlot
+                      key={stack.slotIndex}
+                      stack={stack}
+                      canDrop={canDrop}
+                      isSelectMode={mode.type === "card_selected"}
+                      canSecure={canAct && stack.completed && me.masterCards > 0}
+                      onClick={() => handleSlotClick(stack.slotIndex)}
+                      onSecure={() => handleSecure(stack.slotIndex)}
+                    />
+                  );
+                })}
+              </div>
 
-                {mode.type === "trade_mode" ? (
-                  <>
-                    <ActionBtn onClick={handleTradeConfirm}
-                      disabled={!isValidTradeSet(me.hand, mode.selectedIds)} variant="green">
-                      Confirm Trade ({mode.selectedIds.length}/4)
+              {/* Hand */}
+              <div>
+                <p className="mb-1 px-1 text-[9px] font-bold uppercase tracking-widest text-gray-600">
+                  Hand · {me.hand.length} cards
+                  {mode.type === "trade_mode" && (
+                    <span className="ml-2 text-indigo-400">— pick 4 unique colors or shapes</span>
+                  )}
+                </p>
+                <div className="flex gap-2 overflow-x-auto pb-1 min-h-[7rem]">
+                  {me.hand.length === 0 ? (
+                    <div className="flex flex-1 items-center justify-center text-xs text-gray-700 italic">Empty hand</div>
+                  ) : (
+                    me.hand.map((card) => {
+                      const isSelected = (mode.type === "card_selected" && mode.cardId === card.id) ||
+                        (mode.type === "trade_mode" && mode.selectedIds.includes(card.id));
+                      const isDimmed = mode.type === "trade_mode" && card.type !== "standard";
+                      return (
+                        <CardView key={card.id} card={card} selected={isSelected} dimmed={isDimmed}
+                          onClick={() => handleCardClick(card.id)} clickable={canAct} />
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+
+              {/* Action buttons */}
+              {isMyTurn && (
+                <div className="flex flex-wrap gap-2 border-t border-gray-800 pt-2">
+                  <ActionBtn onClick={handleDraw} disabled={!canAct}>Draw</ActionBtn>
+                  {mode.type === "trade_mode" ? (
+                    <>
+                      <ActionBtn onClick={handleTradeConfirm}
+                        disabled={!isValidTradeSet(me.hand, mode.selectedIds)} variant="green">
+                        Trade ({mode.selectedIds.length}/4)
+                      </ActionBtn>
+                      <ActionBtn onClick={() => setMode({ type: "idle" })} variant="ghost">Cancel</ActionBtn>
+                    </>
+                  ) : (
+                    <ActionBtn onClick={() => canAct && setMode({ type: "trade_mode", selectedIds: [] })} disabled={!canAct}>
+                      Trade 4 → MC
                     </ActionBtn>
-                    <ActionBtn onClick={() => setMode({ type: "idle" })} variant="ghost">Cancel</ActionBtn>
-                  </>
-                ) : (
-                  <ActionBtn onClick={() => canAct && setMode({ type: "trade_mode", selectedIds: [] })} disabled={!canAct}>
-                    Trade 4 → MC
-                  </ActionBtn>
-                )}
-
-                {me.masterCards > 0 && mode.type !== "steal_mode" && (
-                  <ActionBtn onClick={() => canAct && setMode({ type: "steal_mode" })} disabled={!canAct} variant="red">
-                    🗡️ Steal (1 MC)
-                  </ActionBtn>
-                )}
-
-                <ActionBtn onClick={handleEndTurn} variant="ghost">End Turn</ActionBtn>
-              </div>
-            )}
-          </div>
-        )}
+                  )}
+                  {me.masterCards > 0 && mode.type !== "steal_mode" && (
+                    <ActionBtn onClick={() => canAct && setMode({ type: "steal_mode" })} disabled={!canAct} variant="red">
+                      🗡️ Steal
+                    </ActionBtn>
+                  )}
+                  <ActionBtn onClick={handleEndTurn} variant="ghost">End Turn</ActionBtn>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </main>
   );
@@ -538,9 +630,9 @@ export default function Stack5Page() {
 
 function ActionsBar({ remaining }: { remaining: number }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1.5">
       {[0, 1].map((i) => (
-        <div key={i} className={`h-2 w-2 rounded-full transition-all ${i < remaining ? "bg-green-400" : "bg-gray-700"}`} />
+        <div key={i} className={`h-2.5 w-2.5 rounded-full transition-all ${i < remaining ? "bg-green-400" : "bg-gray-700"}`} />
       ))}
     </div>
   );
@@ -589,17 +681,12 @@ function DiscardPile({ topCard, count }: { topCard: Stack5Card | null; count: nu
   return (
     <div className="flex flex-col items-center gap-1">
       <div className="h-20 w-14 rounded-xl border-2 border-gray-700 bg-gray-800 overflow-hidden flex items-center justify-center">
-        {topCard ? <MiniCardLarge card={topCard} /> : <span className="text-[10px] text-gray-600">—</span>}
+        {topCard
+          ? <img src={cardImageSrc(topCard)} alt={cardAlt(topCard)} className="h-full w-full object-cover" draggable={false} />
+          : <span className="text-[10px] text-gray-600">—</span>}
       </div>
       <span className="text-[9px] text-gray-600">DISCARD {count}</span>
     </div>
-  );
-}
-
-function MiniCardLarge({ card }: { card: Stack5Card }) {
-  return (
-    <img src={cardImageSrc(card)} alt={cardAlt(card)}
-      className="h-full w-full object-cover" draggable={false} />
   );
 }
 
@@ -612,7 +699,7 @@ function MyStackSlot({ stack, canDrop, isSelectMode, canSecure, onClick, onSecur
   return (
     <div
       onClick={isSelectMode ? onClick : undefined}
-      className={`relative flex min-h-[9rem] flex-col rounded-2xl border p-2 transition-all duration-150 ${
+      className={`relative flex flex-col rounded-2xl border p-2 transition-all duration-150 ${
         stack.completed
           ? "border-amber-500 bg-amber-950/30 shadow-lg shadow-amber-900/20"
           : canDrop
@@ -621,8 +708,9 @@ function MyStackSlot({ stack, canDrop, isSelectMode, canSecure, onClick, onSecur
           ? "cursor-pointer border-gray-800 bg-gray-900/50 opacity-40"
           : "border-gray-800 bg-gray-900/40"
       }`}
+      style={{ minHeight: "9rem" }}
     >
-      <div className="flex items-center justify-between mb-1">
+      <div className="flex items-center justify-between mb-1.5">
         <span className="text-[9px] text-gray-600">Slot {stack.slotIndex + 1}</span>
         <span className="text-[9px] text-gray-600">{stack.cards.length}/5</span>
       </div>
@@ -634,17 +722,22 @@ function MyStackSlot({ stack, canDrop, isSelectMode, canSecure, onClick, onSecur
             : <span className="text-[10px] text-gray-700">Empty</span>}
         </div>
       ) : (
-        <div className="flex flex-col gap-0.5 flex-1">
-          {stack.cards.map((card, i) => <MiniCard key={i} card={card} />)}
+        /* Overlapping pile */
+        <div className="relative flex-1" style={{ minHeight: `${stack.cards.length * 14 + 24}px` }}>
+          {stack.cards.map((card, i) => (
+            <div key={i} className="absolute left-0 right-0" style={{ top: `${i * 14}px`, zIndex: i }}>
+              <div className="h-8 w-full rounded-lg overflow-hidden border border-black/20 shadow-sm">
+                <img src={cardImageSrc(card)} alt={cardAlt(card)} className="h-full w-full object-cover" draggable={false} />
+              </div>
+            </div>
+          ))}
         </div>
       )}
 
       {stack.matchType && (
-        <div className="mt-1 text-center">
-          <span className="text-[8px] font-bold uppercase tracking-wide text-gray-600">
-            {stack.matchType} · {stack.matchValue}
-          </span>
-        </div>
+        <p className="mt-1 text-center text-[8px] font-bold uppercase tracking-wide text-gray-600">
+          {stack.matchType} · {stack.matchValue}
+        </p>
       )}
 
       {stack.completed && (
@@ -669,37 +762,67 @@ function OpponentPanel({ player, isCurrentTurn, stealMode, myMasterCards, onStea
   myMasterCards: number; onSteal: (si: number) => void;
 }) {
   return (
-    <div className={`rounded-2xl border p-2.5 transition-all ${
+    <div className={`rounded-2xl border p-3 transition-all ${
       isCurrentTurn ? "border-indigo-500/60 bg-indigo-950/20 shadow-md shadow-indigo-900/20" : "border-gray-800 bg-gray-900/50"
     }`}>
-      <div className="flex items-center gap-2 mb-2">
-        <div className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: player.color }} />
+      {/* Name + turn badge */}
+      <div className="flex items-center gap-2 mb-2.5">
+        <div className="h-3 w-3 rounded-full shrink-0" style={{ backgroundColor: player.color }} />
         <span className="flex-1 truncate text-sm font-black">{player.name}</span>
-        {isCurrentTurn && <span className="rounded-full bg-indigo-600 px-1.5 text-[8px] font-black">●</span>}
+        {isCurrentTurn && <span className="rounded-full bg-indigo-600 px-1.5 py-0.5 text-[8px] font-black">TURN</span>}
       </div>
-      <div className="flex gap-3 text-[10px] text-gray-500 mb-2">
-        <span className="text-amber-400 font-bold">⭐ {player.points} pts</span>
-        <span>🃏 {player.masterCards}</span>
-        <span>🤚 {player.hand.length}</span>
+
+      {/* Stats — large and clear */}
+      <div className="grid grid-cols-3 gap-1.5 mb-3">
+        <div className="rounded-xl bg-gray-800/60 py-1.5 text-center">
+          <p className="text-base font-black text-amber-400">{player.points}</p>
+          <p className="text-[8px] text-gray-500">PTS</p>
+        </div>
+        <div className="rounded-xl bg-gray-800/60 py-1.5 text-center">
+          <p className="text-base font-black text-indigo-300">{player.masterCards}</p>
+          <p className="text-[8px] text-gray-500">MC</p>
+        </div>
+        <div className="rounded-xl bg-gray-800/60 py-1.5 text-center">
+          <p className="text-base font-black">{player.hand.length}</p>
+          <p className="text-[8px] text-gray-500">CARDS</p>
+        </div>
       </div>
-      <div className="grid grid-cols-4 gap-1">
-        {player.stacks.map((stack) => (
-          <div key={stack.slotIndex}
-            onClick={stealMode && stack.cards.length > 0 && myMasterCards > 0 ? () => onSteal(stack.slotIndex) : undefined}
-            className={`rounded-lg border p-1 min-h-[4rem] flex flex-col transition-all ${
-              stealMode && stack.cards.length > 0 && myMasterCards > 0
-                ? "cursor-pointer border-red-500/60 bg-red-950/30 ring-1 ring-red-500/40 hover:bg-red-950/50"
-                : stack.completed ? "border-amber-600/60 bg-amber-950/20" : "border-gray-800 bg-gray-950/50"
-            }`}
-          >
-            <span className="text-[7px] text-gray-700 text-center">{stack.cards.length}/5</span>
-            <div className="flex flex-col gap-0.5 mt-0.5">
-              {stack.cards.slice(0, 3).map((card, i) => <MiniCard key={i} card={card} tiny />)}
-              {stack.cards.length > 3 && <span className="text-[6px] text-gray-600 text-center">+{stack.cards.length - 3}</span>}
+
+      {/* Stacks — overlapping card piles */}
+      <div className="grid grid-cols-4 gap-1.5">
+        {player.stacks.map((stack) => {
+          const canSteal = stealMode && stack.cards.length > 0 && myMasterCards > 0;
+          const pileH = Math.max(40, stack.cards.length * 12 + 20);
+          return (
+            <div key={stack.slotIndex}
+              onClick={canSteal ? () => onSteal(stack.slotIndex) : undefined}
+              className={`rounded-xl border p-1 transition-all ${
+                canSteal
+                  ? "cursor-pointer border-red-500/60 bg-red-950/30 ring-1 ring-red-500/40 hover:bg-red-950/50"
+                  : stack.completed ? "border-amber-600/60 bg-amber-950/20"
+                  : "border-gray-800 bg-gray-950/50"
+              }`}
+              style={{ minHeight: `${pileH + 20}px` }}
+            >
+              <p className="text-[7px] text-gray-600 text-center mb-0.5">{stack.cards.length}/5</p>
+              <div className="relative" style={{ height: `${pileH}px` }}>
+                {stack.cards.map((card, i) => (
+                  <div key={i} className="absolute left-0 right-0" style={{ top: `${i * 12}px`, zIndex: i }}>
+                    <div className="h-7 rounded overflow-hidden border border-black/20">
+                      <img src={cardImageSrc(card)} alt="" className="h-full w-full object-cover" draggable={false} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              {stack.completed && (
+                <p className="text-center text-[8px] font-black text-amber-400 mt-1">★</p>
+              )}
+              {stack.matchType && (
+                <p className="text-center text-[6px] text-gray-600 capitalize mt-0.5">{stack.matchValue}</p>
+              )}
             </div>
-            {stack.completed && <span className="mt-auto text-center text-[7px] font-black text-amber-400">★</span>}
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -719,20 +842,17 @@ function CardView({ card, selected, dimmed, onClick, clickable }: {
         ${dimmed ? "opacity-25" : ""}
       `}
     >
-      <img src={cardImageSrc(card)} alt={cardAlt(card)}
-        className="h-full w-full object-cover" draggable={false} />
+      <img src={cardImageSrc(card)} alt={cardAlt(card)} className="h-full w-full object-cover" draggable={false} />
     </button>
   );
 }
 
 // ─── MiniCard ─────────────────────────────────────────────────────────────────
 
-function MiniCard({ card, tiny }: { card: Stack5Card; tiny?: boolean }) {
-  const cls = tiny ? "h-3.5 w-2.5" : "h-5 w-3.5";
+function MiniCard({ card }: { card: Stack5Card }) {
   return (
-    <div className={`${cls} rounded overflow-hidden`}>
-      <img src={cardImageSrc(card)} alt={cardAlt(card)}
-        className="h-full w-full object-cover" draggable={false} />
+    <div className="h-5 w-3.5 rounded overflow-hidden">
+      <img src={cardImageSrc(card)} alt={cardAlt(card)} className="h-full w-full object-cover" draggable={false} />
     </div>
   );
 }
@@ -822,8 +942,11 @@ function ActionBtn({ children, onClick, disabled, variant = "default" }: {
   }[variant];
   return (
     <button onClick={onClick} disabled={disabled}
-      className={`rounded-xl px-4 py-2 text-sm font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${styles}`}>
+      className={`rounded-xl px-3 py-2 text-sm font-bold transition-all active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 ${styles}`}>
       {children}
     </button>
   );
 }
+
+// Keep MiniCard exported-compatible (used by nothing external but referenced above)
+export { MiniCard };

@@ -523,8 +523,8 @@ io.on("connection", (socket) => {
 
   // ── STACK5: CONFIGURE ────────────────────────────────────────────────────
   socket.on("stack5:configure", ({
-    roomCode, targetScore, startingMasterCards, turnTimerSeconds,
-  }: { roomCode: string; targetScore: number; startingMasterCards: number; turnTimerSeconds?: number }) => {
+    roomCode, targetScore, startingMasterCards, turnTimerSeconds, numDecks,
+  }: { roomCode: string; targetScore: number; startingMasterCards: number; turnTimerSeconds?: number; numDecks?: number }) => {
     const rc = roomCode.toUpperCase();
     const room = getRoom(rc);
     if (!room || room.host !== socket.id) {
@@ -536,9 +536,20 @@ io.on("connection", (socket) => {
       return;
     }
     const timer = [0, 15, 30, 60].includes(turnTimerSeconds ?? 0) ? (turnTimerSeconds ?? 0) : 0;
-    const state = s5Create(rc, room.players, targetScore, startingMasterCards, timer, socket.id);
+    const decks = [1, 2].includes(numDecks ?? 1) ? (numDecks ?? 1) : 1;
+    const state = s5Create(rc, room.players, targetScore, startingMasterCards, timer, socket.id, decks);
     io.to(rc).emit("stack5:stateUpdated", state);
     s5StartTimer(rc);
+  });
+
+  socket.on("room:setDisplayName", ({ roomCode, name }: { roomCode: string; name: string }) => {
+    const rc = roomCode.toUpperCase();
+    const room = getRoom(rc);
+    if (!room || !room.players[socket.id]) return;
+    const trimmed = String(name).trim().slice(0, 20);
+    if (!trimmed) return;
+    room.players[socket.id].displayName = trimmed;
+    io.to(rc).emit("roomUpdated", room);
   });
 
   // ── STACK5: GET STATE ─────────────────────────────────────────────────────
