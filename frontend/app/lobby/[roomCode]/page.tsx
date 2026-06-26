@@ -57,11 +57,15 @@ export default function LobbyPage() {
       setLobbyError(data.message);
       setTimeout(() => setLobbyError(""), 4000);
     }
+    function onRoomDeleted() {
+      router.push("/");
+    }
 
     socket.on("connect", onConnect);
     socket.on("roomUpdated", onRoomUpdated);
     socket.on("startGame", onStartGame);
     socket.on("lobbyError", onLobbyError);
+    socket.on("room:deleted", onRoomDeleted);
     socket.emit("joinRoom", { roomCode: rc });
 
     // Send name and token right away if already connected
@@ -76,6 +80,7 @@ export default function LobbyPage() {
       socket.off("roomUpdated", onRoomUpdated);
       socket.off("startGame", onStartGame);
       socket.off("lobbyError", onLobbyError);
+      socket.off("room:deleted", onRoomDeleted);
     };
   }, [roomCode, router]);
 
@@ -328,6 +333,14 @@ export default function LobbyPage() {
             <button onClick={handleAddBot}
               className="w-full rounded-2xl bg-black/40 border border-cyan-900/50 py-3.5 text-sm font-black text-cyan-500 hover:bg-cyan-900/20 hover:-translate-y-0.5 active:scale-95 transition-all duration-150">
               + Add Bot
+            </button>
+          )}
+
+          {isHost && (
+            <button
+              onClick={() => getSocket().emit("room:delete", { roomCode: (roomCode ?? "").toUpperCase() })}
+              className="w-full rounded-2xl bg-black/40 border border-red-900/50 py-3.5 text-sm font-black text-red-500 hover:bg-red-950/30 hover:-translate-y-0.5 active:scale-95 transition-all duration-150">
+              Close Room
             </button>
           )}
 

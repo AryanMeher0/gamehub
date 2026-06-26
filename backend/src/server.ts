@@ -6,7 +6,7 @@ import healthRouter from "./routes/health";
 import {
   createRoom, joinRoom, leaveRoom, disconnectPlayer, reconnectPlayer, restoreRoom,
   setReady, selectGame, getRoomByPlayer, getRoomCodeByPlayer, getRoom,
-  removeBot, setBotDifficulty, getAllRooms,
+  removeBot, setBotDifficulty, getAllRooms, deleteRoom,
 } from "./rooms/roomManager";
 import { initBotScheduler, scheduleBotActions } from "./bots/botScheduler";
 import {
@@ -214,6 +214,15 @@ io.on("connection", (socket) => {
     socket.leave(roomCode);
     console.log(`Player ${socket.id} left room: ${roomCode}`);
     if (updatedRoom) io.to(roomCode).emit("roomUpdated", updatedRoom);
+    io.emit("rooms:list", getAllRooms());
+  });
+
+  // ── DELETE ROOM (host only) ────────────────────────────────────────────────
+  socket.on("room:delete", ({ roomCode }: { roomCode: string }) => {
+    const rc = roomCode.toUpperCase();
+    const ok = deleteRoom(rc, socket.id);
+    if (!ok) { socket.emit("lobbyError", { message: "Only the host can delete a room" }); return; }
+    io.to(rc).emit("room:deleted", { roomCode: rc });
     io.emit("rooms:list", getAllRooms());
   });
 

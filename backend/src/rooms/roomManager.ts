@@ -155,6 +155,7 @@ function getRoomCodeByPlayer(socketId: string): string | null {
 
 export type RoomSummary = {
   roomCode: string;
+  host: string;
   playerCount: number;
   gameId: string | null;
   status: "waiting" | "playing";
@@ -169,6 +170,7 @@ function getAllRooms(): RoomSummary[] {
       const activePlayers = Object.values(r.players).filter((p) => !p.disconnected);
       return {
         roomCode: r.roomCode,
+        host: r.host,
         playerCount: activePlayers.length,
         gameId: r.selectedGameId,
         status: (r.selectedGameId ? "playing" : "waiting") as "waiting" | "playing",
@@ -179,9 +181,16 @@ function getAllRooms(): RoomSummary[] {
     .sort((a, b) => b.createdAt - a.createdAt);
 }
 
+function deleteRoom(roomCode: string, socketId: string): boolean {
+  const room = rooms[roomCode];
+  if (!room || room.host !== socketId) return false;
+  delete rooms[roomCode];
+  return true;
+}
+
 export {
   createRoom, joinRoom, leaveRoom,
   disconnectPlayer, reconnectPlayer, restoreRoom,
   setReady, selectGame, getRoom, getRoomByPlayer, getRoomCodeByPlayer,
-  removeBot, setBotDifficulty, getAllRooms,
+  removeBot, setBotDifficulty, getAllRooms, deleteRoom,
 };

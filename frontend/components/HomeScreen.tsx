@@ -6,6 +6,7 @@ import { getSocket } from "@/lib/socket";
 
 type RoomSummary = {
   roomCode: string;
+  host: string;
   playerCount: number;
   gameId: string | null;
   status: "waiting" | "playing";
@@ -48,6 +49,7 @@ function gameRoute(gameId: string | null, code: string): string {
 export default function HomeScreen() {
   const router = useRouter();
   const [rooms, setRooms] = useState<RoomSummary[]>([]);
+  const [socketId, setSocketId] = useState("");
   const [name, setName] = useState(() =>
     typeof window !== "undefined" ? localStorage.getItem("gamehub:name") ?? "" : ""
   );
@@ -67,6 +69,8 @@ export default function HomeScreen() {
 
   useEffect(() => {
     const socket = getSocket();
+    setSocketId(socket.id ?? "");
+    socket.on("connect", () => setSocketId(socket.id ?? ""));
 
     function onRoomList(list: RoomSummary[]) {
       setRooms(list);
@@ -98,9 +102,14 @@ export default function HomeScreen() {
       router.push(gameRoute(gid, room.roomCode.toUpperCase()));
     }
 
+    function onRoomDeleted() {
+      socket.emit("rooms:getList");
+    }
+
     socket.on("rooms:list", onRoomList);
     socket.on("joinError", onJoinError);
     socket.on("roomUpdated", onRoomUpdated);
+    socket.on("room:deleted", onRoomDeleted);
     socket.emit("rooms:getList");
 
     const interval = setInterval(() => socket.emit("rooms:getList"), 5000);
@@ -109,6 +118,7 @@ export default function HomeScreen() {
       socket.off("rooms:list", onRoomList);
       socket.off("joinError", onJoinError);
       socket.off("roomUpdated", onRoomUpdated);
+      socket.off("room:deleted", onRoomDeleted);
       clearInterval(interval);
     };
   }, [router]);
@@ -135,6 +145,10 @@ export default function HomeScreen() {
     sessionStorage.setItem("gamehub:pendingName", n);
     awaitingNavRef.current = { gameId, roomCode };
     getSocket().emit("joinRoom", { roomCode });
+  }
+
+  function handleDelete(roomCode: string) {
+    getSocket().emit("room:delete", { roomCode });
   }
 
   // Group rooms by game type
@@ -228,7 +242,8 @@ export default function HomeScreen() {
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {waiting.map((room) => (
                       <RoomCard key={room.roomCode} room={room} game={game}
-                        joining={joining} onJoin={handleJoin} />
+                        joining={joining} onJoin={handleJoin}
+                        socketId={socketId} onDelete={handleDelete} />
                     ))}
                   </div>
                 </div>
@@ -244,7 +259,8 @@ export default function HomeScreen() {
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {playing.map((room) => (
                       <RoomCard key={room.roomCode} room={room} game={game}
-                        joining={joining} onJoin={handleJoin} playing />
+                        joining={joining} onJoin={handleJoin} playing
+                        socketId={socketId} onDelete={handleDelete} />
                     ))}
                   </div>
                 </div>
@@ -287,14 +303,17 @@ export default function HomeScreen() {
 
 // ─── RoomCard ─────────────────────────────────────────────────────────────────
 
-function RoomCard({ room, game, joining, onJoin, playing }: {
+function RoomCard({ room, game, joining, onJoin, playing, socketId, onDelete }: {
   room: RoomSummary;
   game: typeof GAMES[number];
   joining: string | null;
   onJoin: (code: string, gameId: string | null) => void;
   playing?: boolean;
+  socketId: string;
+  onDelete: (roomCode: string) => void;
 }) {
   const isJoining = joining === room.roomCode;
+  const isMyRoom = room.host === socketId;
 
   return (
     <div className="rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
@@ -313,9 +332,19 @@ function RoomCard({ room, game, joining, onJoin, playing }: {
               </span>
             </div>
           </div>
-          <div className="text-right">
-            <p className="text-2xl font-black text-white">{room.playerCount}</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-wide">player{room.playerCount !== 1 ? "s" : ""}</p>
+          <div className="flex items-start gap-2">
+            {isMyRoom && (
+              <button
+                onClick={() => onDelete(room.roomCode)}
+                title="Delete room"
+                className="mt-0.5 h-6 w-6 rounded-lg flex items-center justify-center text-xs text-red-500 hover:bg-red-950/60 hover:text-red-400 active:scale-90 transition-all border border-red-900/40">
+                ✕
+              </button>
+            )}
+            <div className="text-right">
+              <p className="text-2xl font-black text-white">{room.playerCount}</p>
+              <p className="text-[10px] text-slate-500 uppercase tracking-wide">player{room.playerCount !== 1 ? "s" : ""}</p>
+            </div>
           </div>
         </div>
 
