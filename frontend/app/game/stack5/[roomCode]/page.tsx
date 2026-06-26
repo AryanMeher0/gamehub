@@ -37,6 +37,16 @@ const SHAPE_LABEL: Record<CardShape, string> = {
 const COLORS: CardColor[] = ["green", "yellow", "pink", "blue"];
 const SHAPES: CardShape[] = ["flower", "lightning", "star", "drop"];
 
+function cardImageSrc(card: Stack5Card): string {
+  if (card.type === "standard") return `/cards/${card.color}_${card.shape}.png`;
+  return `/cards/${card.type}.png`;
+}
+
+function cardAlt(card: Stack5Card): string {
+  if (card.type === "standard") return `${card.color} ${card.shape}`;
+  return card.type.replace(/_/g, " ");
+}
+
 function effectiveColor(card: Stack5Card): CardColor | null {
   if (card.type === "standard") return card.color;
   if (card.type === "wild") return card.assignedColor ?? null;
@@ -583,19 +593,10 @@ function DiscardPile({ topCard, count }: { topCard: Stack5Card | null; count: nu
 }
 
 function MiniCardLarge({ card }: { card: Stack5Card }) {
-  if (card.type === "standard") {
-    return (
-      <div className={`h-full w-full ${COLOR_BG[card.color!]} flex flex-col items-center justify-center gap-0.5`}>
-        <span className="text-xl">{SHAPE_EMOJI[card.shape!]}</span>
-        <span className={`text-[8px] font-bold ${COLOR_TEXT[card.color!]}`}>{COLOR_LABEL[card.color!]}</span>
-      </div>
-    );
-  }
-  if (card.type === "wild") return <div className="h-full w-full bg-gradient-to-br from-purple-600 to-pink-500 flex items-center justify-center"><span className="text-xl">✨</span></div>;
-  if (card.type === "skip") return <div className="h-full w-full bg-orange-500 flex items-center justify-center"><span className="text-xl">⊘</span></div>;
-  if (card.type === "reverse") return <div className="h-full w-full bg-purple-600 flex items-center justify-center"><span className="text-xl">↕️</span></div>;
-  if (card.type === "reset_hand") return <div className="h-full w-full bg-red-600 flex items-center justify-center"><span className="text-xl">🗑️</span></div>;
-  return null;
+  return (
+    <img src={cardImageSrc(card)} alt={cardAlt(card)}
+      className="h-full w-full object-cover" draggable={false} />
+  );
 }
 
 // ─── MyStackSlot ──────────────────────────────────────────────────────────────
@@ -705,63 +706,31 @@ function OpponentPanel({ player, isCurrentTurn, stealMode, myMasterCards, onStea
 function CardView({ card, selected, dimmed, onClick, clickable }: {
   card: Stack5Card; selected?: boolean; dimmed?: boolean; onClick?: () => void; clickable?: boolean;
 }) {
-  const base = `shrink-0 h-28 w-20 rounded-2xl border-2 flex flex-col items-center justify-center gap-1 transition-all duration-100 ${
-    clickable ? "cursor-pointer hover:brightness-110 active:scale-[0.96]" : "cursor-default"
-  } ${selected ? "scale-110 ring-2 ring-white border-white shadow-2xl z-10" : ""} ${dimmed ? "opacity-25" : ""}`;
-
-  if (card.type === "standard") return (
-    <button onClick={onClick} className={`${base} ${COLOR_BG[card.color!]} ${COLOR_TEXT[card.color!]} ${selected ? "border-white" : "border-transparent"}`}>
-      <span className="text-4xl">{SHAPE_EMOJI[card.shape!]}</span>
-      <span className="text-[9px] font-bold">{COLOR_LABEL[card.color!]}</span>
+  return (
+    <button
+      onClick={onClick}
+      className={`shrink-0 h-28 w-20 rounded-2xl overflow-hidden border-2 transition-all duration-100
+        ${clickable ? "cursor-pointer hover:brightness-110 active:scale-[0.96]" : "cursor-default pointer-events-none"}
+        ${selected ? "scale-110 border-white ring-2 ring-white shadow-2xl z-10" : "border-transparent"}
+        ${dimmed ? "opacity-25" : ""}
+      `}
+    >
+      <img src={cardImageSrc(card)} alt={cardAlt(card)}
+        className="h-full w-full object-cover" draggable={false} />
     </button>
   );
-  if (card.type === "wild") return (
-    <button onClick={onClick} className={`${base} bg-gradient-to-br from-purple-600 via-pink-500 to-yellow-400 text-white ${selected ? "border-white" : "border-purple-400"}`}>
-      <span className="text-3xl">✨</span>
-      <span className="text-[9px] font-bold">WILD</span>
-    </button>
-  );
-  if (card.type === "skip") return (
-    <button onClick={onClick} className={`${base} bg-orange-500 text-white ${selected ? "border-white" : "border-orange-300"}`}>
-      <span className="text-3xl">⊘</span>
-      <span className="text-[9px] font-bold">SKIP</span>
-    </button>
-  );
-  if (card.type === "reverse") return (
-    <button onClick={onClick} className={`${base} bg-purple-600 text-white ${selected ? "border-white" : "border-purple-400"}`}>
-      <span className="text-3xl">↕️</span>
-      <span className="text-[9px] font-bold">REVERSE</span>
-    </button>
-  );
-  if (card.type === "reset_hand") return (
-    <button onClick={onClick} className={`${base} bg-red-600 text-white ${selected ? "border-white" : "border-red-400"}`}>
-      <span className="text-3xl">🗑️</span>
-      <span className="text-[9px] font-bold">RESET</span>
-    </button>
-  );
-  return null;
 }
 
 // ─── MiniCard ─────────────────────────────────────────────────────────────────
 
 function MiniCard({ card, tiny }: { card: Stack5Card; tiny?: boolean }) {
-  const h = tiny ? "h-3.5" : "h-5";
-  const sz = tiny ? "text-[7px]" : "text-[9px]";
-  if (card.type === "standard") return (
-    <div className={`${h} rounded ${COLOR_BG[card.color!]} flex items-center justify-center`}>
-      <span className={sz}>{SHAPE_EMOJI[card.shape!]}</span>
+  const cls = tiny ? "h-3.5 w-2.5" : "h-5 w-3.5";
+  return (
+    <div className={`${cls} rounded overflow-hidden`}>
+      <img src={cardImageSrc(card)} alt={cardAlt(card)}
+        className="h-full w-full object-cover" draggable={false} />
     </div>
   );
-  const assignedBg = card.type === "wild" && card.assignedColor ? COLOR_BG[card.assignedColor] : null;
-  if (card.type === "wild") return (
-    <div className={`${h} rounded ${assignedBg ?? "bg-gradient-to-r from-purple-500 to-pink-500"} flex items-center justify-center`}>
-      <span className={sz}>✨</span>
-    </div>
-  );
-  if (card.type === "skip") return <div className={`${h} rounded bg-orange-500 flex items-center justify-center`}><span className={sz}>⊘</span></div>;
-  if (card.type === "reverse") return <div className={`${h} rounded bg-purple-600 flex items-center justify-center`}><span className={sz}>↕</span></div>;
-  if (card.type === "reset_hand") return <div className={`${h} rounded bg-red-600 flex items-center justify-center`}><span className={sz}>🗑</span></div>;
-  return null;
 }
 
 // ─── WildPicker ───────────────────────────────────────────────────────────────
@@ -795,9 +764,11 @@ function WildPicker({ onPick, onCancel }: { onPick: (c: CardColor, s: CardShape)
             ))}
           </div>
         </div>
-        <div className={`mb-4 rounded-2xl p-3 text-center ${COLOR_BG[color]}`}>
-          <span className="text-3xl">{SHAPE_EMOJI[shape]}</span>
-          <p className={`text-xs font-black mt-1 ${COLOR_TEXT[color]}`}>{COLOR_LABEL[color]} {SHAPE_LABEL[shape]}</p>
+        <div className="mb-4 flex justify-center">
+          <div className="h-28 w-20 rounded-2xl overflow-hidden border-2 border-indigo-400 shadow-lg">
+            <img src={`/cards/${color}_${shape}.png`} alt={`${color} ${shape}`}
+              className="h-full w-full object-cover" draggable={false} />
+          </div>
         </div>
         <div className="flex gap-2">
           <button onClick={onCancel} className="flex-1 rounded-xl bg-gray-800 py-3 font-bold hover:bg-gray-700">Cancel</button>

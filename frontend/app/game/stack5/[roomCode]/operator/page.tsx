@@ -3,14 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
-import { Stack5State, Stack5Player, CardColor, CardShape } from "@/types/stack5";
+import { Stack5State, Stack5Player } from "@/types/stack5";
 
-const COLOR_BG: Record<CardColor, string> = {
-  green: "bg-green-500", yellow: "bg-yellow-400", pink: "bg-pink-500", blue: "bg-blue-500",
-};
-const SHAPE_EMOJI: Record<CardShape, string> = {
-  flower: "🌸", lightning: "⚡", star: "⭐", drop: "💧",
-};
+function cardImageSrc(card: { type: string; color?: string | null; shape?: string | null }): string {
+  if (card.type === "standard") return `/cards/${card.color}_${card.shape}.png`;
+  return `/cards/${card.type}.png`;
+}
 
 export default function Stack5OperatorPage() {
   const { roomCode: rawCode } = useParams<{ roomCode: string }>();
@@ -208,15 +206,12 @@ function PlayerCard({ player, isCurrentTurn, isHost, onGiveMC, onClearStack }: {
         <div className="flex flex-wrap gap-1">
           {player.hand.length === 0
             ? <span className="text-xs text-gray-700 italic">Empty</span>
-            : player.hand.map((card, i) => {
-              if (card.type === "standard") return (
-                <div key={i} className={`rounded-lg px-2 py-1 text-xs font-bold ${COLOR_BG[card.color!]} text-white`}>
-                  {SHAPE_EMOJI[card.shape!]}
-                </div>
-              );
-              const labels: Record<string, string> = { wild: "✨", skip: "⊘", reverse: "↕️", reset_hand: "🗑️" };
-              return <div key={i} className="rounded-lg bg-gray-700 px-2 py-1 text-xs">{labels[card.type] ?? "?"}</div>;
-            })
+            : player.hand.map((card, i) => (
+              <div key={i} className="h-10 w-7 rounded-lg overflow-hidden border border-gray-700">
+                <img src={cardImageSrc(card)} alt={card.type}
+                  className="h-full w-full object-cover" draggable={false} />
+              </div>
+            ))
           }
         </div>
       </div>
