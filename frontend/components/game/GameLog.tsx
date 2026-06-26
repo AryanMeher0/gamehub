@@ -14,15 +14,15 @@ export default function GameLog({ log }: Props) {
   }, [log]);
 
   return (
-    <div className="rounded-xl border border-gray-700 bg-gray-900">
-      <p className="border-b border-gray-700 px-3 py-2 text-xs font-semibold uppercase tracking-widest text-gray-500">
+    <div className="rounded-xl overflow-hidden"
+      style={{ background: "rgba(0,0,0,0.40)", border: "1px solid rgba(255,255,255,0.05)" }}>
+      <p className="px-3 py-2 text-[9px] font-black uppercase tracking-widest text-green-900"
+        style={{ borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
         Game Log
       </p>
-      <div className="flex h-40 flex-col gap-1 overflow-y-auto p-3">
+      <div className="flex h-40 flex-col gap-0.5 overflow-y-auto p-3">
         {log.slice(-50).map((entry, i) => (
-          <p key={i} className="text-xs text-gray-300 leading-relaxed">
-            {entry}
-          </p>
+          <p key={i} className="text-[10px] text-green-800 leading-relaxed">{entry}</p>
         ))}
         <div ref={bottomRef} />
       </div>

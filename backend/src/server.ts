@@ -546,8 +546,10 @@ io.on("connection", (socket) => {
     }
     const timer = [0, 15, 30, 60].includes(turnTimerSeconds ?? 0) ? (turnTimerSeconds ?? 0) : 0;
     const decks = [1, 2].includes(numDecks ?? 1) ? (numDecks ?? 1) : 1;
+    selectGame(rc, socket.id, "stack5");
     const state = s5Create(rc, room.players, targetScore, startingMasterCards, timer, socket.id, decks);
     io.to(rc).emit("stack5:stateUpdated", state);
+    io.emit("rooms:list", getAllRooms());
     s5StartTimer(rc);
   });
 

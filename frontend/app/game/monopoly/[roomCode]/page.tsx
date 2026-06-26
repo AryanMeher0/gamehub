@@ -141,60 +141,67 @@ export default function GamePage() {
 
   if (!state) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-950 text-white">
-        <div className="text-center">
-          <p className="animate-pulse text-gray-400">Loading game...</p>
-          <p className="mt-2 text-xs text-gray-600">Connecting to server</p>
+      <main className="flex min-h-screen items-center justify-center text-white"
+        style={{ background: "radial-gradient(ellipse at 50% 60%, #1a4d30 0%, #0a2518 60%, #060f0a 100%)" }}>
+        <div className="text-center fade-up">
+          <div className="text-5xl mb-3 animate-pulse">🎩</div>
+          <p className="text-green-400 font-black text-lg">India Monopoly</p>
+          <p className="text-xs text-green-800 mt-1">Connecting to server…</p>
         </div>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-screen flex-col bg-gray-950 text-white">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-gray-800 px-4 py-3">
-        <div className="flex items-center gap-3">
-          <span className="text-lg font-black text-indigo-400">GameHub</span>
-          <span className="rounded-full bg-gray-800 px-2 py-0.5 font-mono text-xs text-gray-400">
-            {roomCode}
-          </span>
+    <main className="flex h-screen flex-col text-white overflow-hidden"
+      style={{ background: "radial-gradient(ellipse at 50% 40%, #1e5c38 0%, #0d3320 55%, #061309 100%)" }}>
+
+      {/* ── Header ── */}
+      <header className="flex shrink-0 items-center justify-between px-4 py-2"
+        style={{ background: "rgba(0,0,0,0.55)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+        <div className="flex items-center gap-2.5">
+          <span className="font-black text-base text-amber-400 tracking-tight">India Monopoly</span>
+          <span className="rounded-full bg-black/40 px-2 py-0.5 font-mono text-xs text-green-800">{roomCode}</span>
         </div>
+
         {disconnected && (
           <span className="animate-pulse rounded-lg bg-orange-900/60 px-3 py-1 text-xs font-bold text-orange-300">
-            Disconnected — reconnecting… (last state saved locally)
+            Reconnecting… (last state saved)
           </span>
         )}
         {!disconnected && error && (
           <span className="rounded-lg bg-red-900/50 px-3 py-1 text-xs text-red-400">{error}</span>
         )}
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2">
           <button
             onClick={() => router.push(`/game/monopoly/${roomCode}/operator`)}
-            className="rounded-lg border border-amber-700/50 bg-amber-950/40 px-3 py-1.5 text-xs font-bold text-amber-400 hover:bg-amber-950/70 transition-colors"
-          >
-            Operator Panel
+            className="text-xs px-2 py-1 rounded-lg bg-black/30 border border-amber-900/40 text-amber-700 hover:text-amber-400 hover:border-amber-700 transition-all duration-150">
+            ⚙️ Operator
           </button>
-          <button
-            onClick={handleLeave}
-            className="text-xs text-gray-600 hover:text-gray-400 transition-colors"
-          >
+          <button onClick={handleLeave}
+            className="text-xs text-green-900 hover:text-green-600 transition-colors">
             Leave
           </button>
         </div>
       </header>
 
-      {/* Body */}
-      <div className="flex flex-1 flex-col gap-4 p-4 lg:flex-row lg:items-start">
-        <div className="w-full lg:flex-1">
-          <Board
-            players={state.players}
-            properties={state.properties}
-            onSpaceClick={(i) => setSelectedSpace(i)}
-          />
+      {/* ── Body ── */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Board */}
+        <div className="flex-1 p-3 overflow-auto flex items-start justify-center">
+          <div className="w-full max-w-3xl">
+            <Board
+              players={state.players}
+              properties={state.properties}
+              onSpaceClick={(i) => setSelectedSpace(i)}
+            />
+          </div>
         </div>
 
-        <div className="flex w-full flex-col gap-4 lg:w-72 lg:shrink-0">
+        {/* Side panel */}
+        <div className="w-72 shrink-0 flex flex-col gap-3 p-3 overflow-y-auto"
+          style={{ borderLeft: "1px solid rgba(255,255,255,0.04)" }}>
           <PlayerPanel
             state={state}
             socketId={socketId}

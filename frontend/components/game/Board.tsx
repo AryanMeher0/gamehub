@@ -21,12 +21,12 @@ type Props = {
 };
 
 // Standard Monopoly corner positions (clockwise from GO):
-// GO=0 (bottom-right), Jail=10 (bottom-left), FreePark=20 (top-left), GoJail=30 (top-right)
+// GO=0 (bottom-left), Jail=10 (bottom-right), FreePark=20 (top-right), GoJail=30 (top-left)
 const CORNERS = {
-  topLeft:     20, // Free Parking
-  topRight:    30, // Go To Jail
-  bottomLeft:  10, // Jail / Visiting
-  bottomRight:  0, // GO
+  topLeft:     30, // Go To Jail
+  topRight:    20, // Free Parking
+  bottomLeft:   0, // GO
+  bottomRight: 10, // Jail / Visiting
 } as const;
 
 function getPlayersOnSpace(index: number, players: Record<string, GamePlayer>): GamePlayer[] {
@@ -42,19 +42,19 @@ function getCornerIndex(r: number, c: number): number | null {
 }
 
 // Maps grid position → gameplay space index (0–39).
-// Layout clockwise from GO at bottom-right:
-//   Bottom row  (r=10, c=9→1): indices  1– 9  (GO=0 at c=10, Jail=10 at c=0)
-//   Left column (c=0,  r=9→1): indices 11–19  (Jail=10 at r=10, FreePark=20 at r=0)
-//   Top row     (r=0,  c=1→9): indices 21–29  (FreePark=20 at c=0, GoJail=30 at c=10)
-//   Right column(c=10, r=1→9): indices 31–39  (GoJail=30 at r=0, GO=0 at r=10)
+// Layout clockwise from GO at bottom-left:
+//   Bottom row   (r=10, c=1→9):  indices  1– 9  (GO=0 at c=0, Jail=10 at c=10)
+//   Right column (c=10, r=9→1):  indices 11–19  (Jail=10 at r=10, FreePark=20 at r=0)
+//   Top row      (r=0,  c=9→1):  indices 21–29  (FreePark=20 at c=10, GoJail=30 at c=0)
+//   Left column  (c=0,  r=1→9):  indices 31–39  (GoJail=30 at r=0, GO=0 at r=10)
 function getSpaceIndex(r: number, c: number): number | null {
   const corner = getCornerIndex(r, c);
   if (corner !== null) return corner;
 
-  if (r === 10 && c >= 1 && c <= 9) return 10 - c;        // 9→1 … 1→9
-  if (c === 0  && r >= 1 && r <= 9) return 20 - r;        // 9→11 … 1→19
-  if (r === 0  && c >= 1 && c <= 9) return 20 + c;        // 1→21 … 9→29
-  if (c === 10 && r >= 1 && r <= 9) return 30 + r;        // 1→31 … 9→39
+  if (r === 10 && c >= 1 && c <= 9) return c;             // 1→1 … 9→9
+  if (c === 10 && r >= 1 && r <= 9) return 20 - r;        // 9→11 … 1→19
+  if (r === 0  && c >= 1 && c <= 9) return 30 - c;        // 9→21 … 1→29
+  if (c === 0  && r >= 1 && r <= 9) return r + 30;         // 1→31 … 9→39
 
   return null;
 }

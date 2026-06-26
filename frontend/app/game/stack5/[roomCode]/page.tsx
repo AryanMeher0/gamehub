@@ -138,12 +138,20 @@ export default function Stack5Page() {
     if (socket.id) sessionStorage.setItem(`gamehub:socket:${roomCode}`, socket.id);
 
     function onConnect() {
-      setSocketId(socket.id ?? "");
-      if (socket.id) sessionStorage.setItem(`gamehub:socket:${roomCode}`, socket.id);
-      socket.emit("stack5:getState", { roomCode });
-      // Push pre-entered name from lobby immediately on connect
-      const pending = sessionStorage.getItem("gamehub:pendingName");
-      if (pending) socket.emit("room:setDisplayName", { roomCode, name: pending });
+      const newId = socket.id ?? "";
+      setSocketId(newId);
+      const oldId = sessionStorage.getItem(`gamehub:socket:${roomCode}`);
+      if (newId) sessionStorage.setItem(`gamehub:socket:${roomCode}`, newId);
+
+      if (oldId && oldId !== newId) {
+        // Page refreshed — remap old socket to this new one before fetching state
+        socket.emit("game:reconnect", { roomCode, oldSocketId: oldId });
+        // game:reconnected will call stack5:getState; game:reconnectFailed falls back below
+      } else {
+        socket.emit("stack5:getState", { roomCode });
+        const pending = sessionStorage.getItem("gamehub:pendingName");
+        if (pending) socket.emit("room:setDisplayName", { roomCode, name: pending });
+      }
     }
     function onState(s: Stack5State) {
       const prev = stateRef.current;
@@ -159,7 +167,15 @@ export default function Stack5Page() {
       }
     }
     function onError(d: { message: string }) { showError(d.message); }
-    function onReconnected() { socket.emit("stack5:getState", { roomCode }); }
+    function onReconnected() {
+      socket.emit("stack5:getState", { roomCode });
+      const pending = sessionStorage.getItem("gamehub:pendingName");
+      if (pending) socket.emit("room:setDisplayName", { roomCode, name: pending });
+    }
+    function onReconnectFailed() {
+      // Reconnect window expired — get whatever state is available as a new session
+      socket.emit("stack5:getState", { roomCode });
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     function onRoomUpdated(room: any) {
       if (!room) return;
@@ -173,6 +189,7 @@ export default function Stack5Page() {
     socket.on("stack5:stateUpdated", onState);
     socket.on("stack5:error", onError);
     socket.on("game:reconnected", onReconnected);
+    socket.on("game:reconnectFailed", onReconnectFailed);
     socket.on("roomUpdated", onRoomUpdated);
     socket.emit("stack5:getState", { roomCode });
     socket.emit("getRoom", { roomCode });
@@ -185,6 +202,7 @@ export default function Stack5Page() {
       socket.off("stack5:stateUpdated", onState);
       socket.off("stack5:error", onError);
       socket.off("game:reconnected", onReconnected);
+      socket.off("game:reconnectFailed", onReconnectFailed);
       socket.off("roomUpdated", onRoomUpdated);
     };
   }, [roomCode]);
@@ -870,7 +888,7 @@ function DiscardPile({ topCard, count }: { topCard: Stack5Card | null; count: nu
 
 function StackCard({ card, mini }: { card: Stack5Card; mini?: boolean }) {
   return (
-    <div className={`relative ${mini ? "h-9 w-6" : "h-14 w-10"} rounded-md overflow-hidden shrink-0 card-in`}
+    <div className={`relative ${mini ? "h-12 w-8" : "h-14 w-10"} rounded-md overflow-hidden shrink-0 card-in`}
       style={{ border: "1px solid rgba(0,0,0,0.3)", boxShadow: "0 2px 8px rgba(0,0,0,0.5)" }}>
       <img src={cardImageSrc(card)} alt={cardAlt(card)} className="h-full w-full object-cover" draggable={false} />
     </div>
@@ -998,34 +1016,39 @@ function OpponentPanel({ player, isCurrentTurn, stealMode, myMasterCards, onStea
         ))}
       </div>
 
-      {/* Stacks */}
-      <div className="flex flex-col gap-1">
+      {/* Stacks — 2×2 grid */}
+      <div className="grid grid-cols-2 gap-1.5">
         {player.stacks.map((stack) => {
           const canSteal = stealMode && stack.cards.length > 0 && myMasterCards > 0;
           const dots = Array.from({ length: 5 }, (_, i) => i < stack.cards.length);
           return (
             <div key={stack.slotIndex}
               onClick={canSteal ? () => onSteal(stack.slotIndex) : undefined}
-              className={`flex flex-row items-center gap-2 rounded-lg px-2 py-1.5 transition-all duration-200 ${canSteal ? "cursor-pointer hover:scale-[1.01] active:scale-[0.99]" : ""}`}
+              className={`flex flex-col rounded-lg p-1.5 transition-all duration-200 ${canSteal ? "cursor-pointer hover:scale-[1.02] active:scale-[0.99]" : ""}`}
               style={{
-                background: canSteal ? "rgba(120,0,0,0.30)" : stack.completed ? "rgba(120,60,0,0.20)" : "rgba(0,0,0,0.20)",
-                border: canSteal ? "1px solid rgba(220,0,0,0.40)" : stack.completed ? "1px solid rgba(251,191,36,0.30)" : "1px solid rgba(255,255,255,0.04)",
+                minHeight: "6rem",
+                background: canSteal ? "rgba(120,0,0,0.35)" : stack.completed ? "rgba(120,60,0,0.25)" : "rgba(0,0,0,0.25)",
+                border: canSteal ? "1px solid rgba(220,0,0,0.50)" : stack.completed ? "1px solid rgba(251,191,36,0.40)" : "1px solid rgba(255,255,255,0.06)",
               }}>
-              <span className="text-[8px] font-bold text-green-900 w-3 shrink-0">{stack.slotIndex + 1}</span>
-              <div className="flex flex-row gap-0.5 flex-1 min-w-0">
-                {stack.cards.length === 0
-                  ? <span className="text-[8px] text-green-900/50 italic">empty</span>
-                  : stack.cards.map((card, i) => <StackCard key={`${card.id}-${i}`} card={card} mini />)}
-              </div>
-              <div className="flex flex-col items-end shrink-0 gap-0.5">
-                <div className="flex gap-0.5">
+              {/* Slot header */}
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[7px] font-bold text-green-800">S{stack.slotIndex + 1}</span>
+                <div className="flex items-center gap-0.5">
+                  {stack.completed && <span className="text-[8px] text-amber-400 font-black leading-none mr-0.5">★</span>}
                   {dots.map((filled, i) => (
                     <div key={i} className={`h-1 w-1 rounded-full ${filled ? "bg-green-400" : "bg-black/40 border border-green-900/30"}`} />
                   ))}
                 </div>
-                {stack.completed && <span className="text-[8px] text-amber-400 font-black">★</span>}
-                {stack.matchType && <span className="text-[6px] text-green-900 capitalize">{stack.matchValue}</span>}
               </div>
+              {/* Cards */}
+              <div className="flex flex-row flex-wrap gap-0.5 flex-1 content-start">
+                {stack.cards.length === 0
+                  ? <span className="text-[7px] text-green-900/40 italic self-center w-full text-center mt-2">empty</span>
+                  : stack.cards.map((card, i) => <StackCard key={`${card.id}-${i}`} card={card} mini />)}
+              </div>
+              {stack.matchType && (
+                <p className="text-[6px] font-bold text-green-800 capitalize mt-1 tracking-wide">{stack.matchValue}</p>
+              )}
             </div>
           );
         })}
