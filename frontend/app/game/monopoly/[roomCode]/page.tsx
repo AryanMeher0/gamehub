@@ -142,11 +142,11 @@ export default function GamePage() {
   if (!state) {
     return (
       <main className="flex min-h-screen items-center justify-center text-white"
-        style={{ background: "radial-gradient(ellipse at 50% 60%, #1a4d30 0%, #0a2518 60%, #060f0a 100%)" }}>
+        style={{ background: "radial-gradient(ellipse at 50% 40%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
         <div className="text-center fade-up">
           <div className="text-5xl mb-3 animate-pulse">🎩</div>
-          <p className="text-green-400 font-black text-lg">India Monopoly</p>
-          <p className="text-xs text-green-800 mt-1">Connecting to server…</p>
+          <p className="text-amber-400 font-black text-lg">India Monopoly</p>
+          <p className="text-xs text-slate-600 mt-1">Connecting to server…</p>
         </div>
       </main>
     );
@@ -154,14 +154,13 @@ export default function GamePage() {
 
   return (
     <main className="flex h-screen flex-col text-white overflow-hidden"
-      style={{ background: "radial-gradient(ellipse at 50% 40%, #1e5c38 0%, #0d3320 55%, #061309 100%)" }}>
+      style={{ background: "radial-gradient(ellipse at 50% 40%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
 
       {/* ── Header ── */}
       <header className="flex shrink-0 items-center justify-between px-4 py-2"
         style={{ background: "rgba(0,0,0,0.55)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
         <div className="flex items-center gap-2.5">
           <span className="font-black text-base text-amber-400 tracking-tight">India Monopoly</span>
-          <span className="rounded-full bg-black/40 px-2 py-0.5 font-mono text-xs text-green-800">{roomCode}</span>
         </div>
 
         {disconnected && (
@@ -180,7 +179,7 @@ export default function GamePage() {
             ⚙️ Operator
           </button>
           <button onClick={handleLeave}
-            className="text-xs text-green-900 hover:text-green-600 transition-colors">
+            className="text-xs text-slate-600 hover:text-slate-400 transition-colors">
             Leave
           </button>
         </div>

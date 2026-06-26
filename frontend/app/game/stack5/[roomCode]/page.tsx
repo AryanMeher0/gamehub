@@ -314,91 +314,90 @@ export default function Stack5Page() {
   if (!state) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-5 px-4 text-white"
-        style={{ background: "radial-gradient(ellipse at 50% 60%, #1a4d30 0%, #0a2518 60%, #060f0a 100%)" }}>
+        style={{ background: "radial-gradient(ellipse at 50% 40%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
         <div className="text-center fade-up">
           <span className="text-5xl">🧱</span>
-          <h1 className="mt-2 text-4xl font-black tracking-tight text-green-300">Stack5</h1>
-          <p className="mt-1 text-xs text-green-900 font-mono tracking-widest">{roomCode}</p>
+          <h1 className="mt-2 text-4xl font-black tracking-tight text-amber-300">Stack5</h1>
         </div>
 
         <div className="w-full max-w-sm fade-up" style={{ animationDelay: "60ms" }}>
-          <p className="mb-1.5 text-xs font-bold uppercase tracking-widest text-green-700">Your Name</p>
+          <p className="mb-1.5 text-xs font-bold uppercase tracking-widest text-slate-500">Your Name</p>
           <input type="text" maxLength={20} value={myName} onChange={(e) => handleNameChange(e.target.value)}
             placeholder="Enter your name…"
-            className="w-full rounded-2xl bg-black/30 border border-green-900 px-4 py-3 text-sm font-bold placeholder-green-900 text-white focus:border-green-500 focus:outline-none focus:ring-2 focus:ring-green-500/20 transition-all" />
+            className="w-full rounded-2xl bg-black/30 border border-slate-800 px-4 py-3 text-sm font-bold placeholder-slate-600 text-white focus:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500/20 transition-all" />
         </div>
 
         {isHost ? (
-          <div className="w-full max-w-sm rounded-3xl border border-green-900/60 bg-black/40 p-5 shadow-2xl backdrop-blur fade-up" style={{ animationDelay: "120ms" }}>
-            <h2 className="mb-5 text-center text-xl font-black tracking-tight text-green-300">Create Game</h2>
+          <div className="w-full max-w-sm rounded-3xl border border-slate-800/60 bg-black/40 p-5 shadow-2xl backdrop-blur fade-up" style={{ animationDelay: "120ms" }}>
+            <h2 className="mb-5 text-center text-xl font-black tracking-tight text-amber-300">Create Game</h2>
             <div className="mb-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-green-800">Points to Win</p>
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-600">Points to Win</p>
               <div className="grid grid-cols-3 gap-2">
                 {[2, 3, 4].map((n) => (
                   <button key={n} onClick={() => setTargetScore(n)}
-                    className={`rounded-xl py-3 font-black transition-all duration-150 ${targetScore === n ? "bg-green-600 text-white scale-105 shadow-lg shadow-green-900/60" : "bg-black/30 border border-green-900 text-green-600 hover:bg-green-900/30 hover:-translate-y-0.5"}`}>
+                    className={`rounded-xl py-3 font-black transition-all duration-150 ${targetScore === n ? "bg-amber-600 text-white scale-105 shadow-lg shadow-amber-900/60" : "bg-black/30 border border-slate-800 text-slate-400 hover:bg-slate-900/30 hover:-translate-y-0.5"}`}>
                     {n} pts
                   </button>
                 ))}
               </div>
             </div>
             <div className="mb-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-green-800">Starting Master Cards</p>
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-600">Starting Master Cards</p>
               <div className="grid grid-cols-4 gap-2">
                 {[1, 2, 3, 4].map((n) => (
                   <button key={n} onClick={() => setStartingMC(n)}
-                    className={`rounded-xl py-3 font-black transition-all duration-150 ${startingMC === n ? "bg-amber-500 text-gray-950 scale-105 shadow-lg" : "bg-black/30 border border-green-900 text-green-600 hover:bg-green-900/30 hover:-translate-y-0.5"}`}>
+                    className={`rounded-xl py-3 font-black transition-all duration-150 ${startingMC === n ? "bg-amber-500 text-gray-950 scale-105 shadow-lg" : "bg-black/30 border border-slate-800 text-slate-400 hover:bg-slate-900/30 hover:-translate-y-0.5"}`}>
                     {n}
                   </button>
                 ))}
               </div>
             </div>
             <div className="mb-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-green-800">Turn Timer</p>
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-600">Turn Timer</p>
               <div className="grid grid-cols-4 gap-2">
                 {[0, 15, 30, 60].map((n) => (
                   <button key={n} onClick={() => setTurnTimer(n)}
-                    className={`rounded-xl py-3 text-sm font-black transition-all duration-150 ${turnTimer === n ? "bg-cyan-600 text-white scale-105 shadow-lg" : "bg-black/30 border border-green-900 text-green-600 hover:bg-green-900/30 hover:-translate-y-0.5"}`}>
+                    className={`rounded-xl py-3 text-sm font-black transition-all duration-150 ${turnTimer === n ? "bg-cyan-600 text-white scale-105 shadow-lg" : "bg-black/30 border border-slate-800 text-slate-400 hover:bg-slate-900/30 hover:-translate-y-0.5"}`}>
                     {n === 0 ? "Off" : `${n}s`}
                   </button>
                 ))}
               </div>
             </div>
             <div className="mb-5">
-              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-green-800">Number of Decks</p>
+              <p className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-600">Number of Decks</p>
               <div className="grid grid-cols-2 gap-2">
                 {[1, 2].map((n) => (
                   <button key={n} onClick={() => setNumDecks(n)}
-                    className={`rounded-xl py-3 font-black transition-all duration-150 ${numDecks === n ? "bg-purple-600 text-white scale-105 shadow-lg" : "bg-black/30 border border-green-900 text-green-600 hover:bg-green-900/30 hover:-translate-y-0.5"}`}>
+                    className={`rounded-xl py-3 font-black transition-all duration-150 ${numDecks === n ? "bg-purple-600 text-white scale-105 shadow-lg" : "bg-black/30 border border-slate-800 text-slate-400 hover:bg-slate-900/30 hover:-translate-y-0.5"}`}>
                     {n} Deck{n > 1 ? "s" : ""} ({n * 100} cards)
                   </button>
                 ))}
               </div>
             </div>
             {lobbyPlayers.length > 0 && (
-              <div className="mb-4 rounded-xl bg-black/20 border border-green-900/40 px-3 py-2.5">
-                <p className="text-[9px] font-bold uppercase tracking-widest text-green-800 mb-2">In Lobby</p>
+              <div className="mb-4 rounded-xl bg-black/20 border border-slate-800/40 px-3 py-2.5">
+                <p className="text-[9px] font-bold uppercase tracking-widest text-slate-600 mb-2">In Lobby</p>
                 <div className="flex flex-wrap gap-1.5">
                   {lobbyPlayers.map((p) => (
-                    <span key={p.id} className="rounded-full bg-green-900/40 border border-green-800/50 px-2.5 py-0.5 text-xs font-bold text-green-400">{p.name}</span>
+                    <span key={p.id} className="rounded-full bg-slate-900/40 border border-slate-700/50 px-2.5 py-0.5 text-xs font-bold text-amber-400">{p.name}</span>
                   ))}
                 </div>
               </div>
             )}
             <button onClick={handleConfigure}
-              className="w-full rounded-xl bg-green-600 py-4 text-lg font-black hover:bg-green-500 hover:-translate-y-0.5 hover:shadow-xl active:scale-95 transition-all duration-150 text-white shadow-lg shadow-green-900/60">
+              className="w-full rounded-xl bg-amber-600 py-4 text-lg font-black hover:bg-amber-500 hover:-translate-y-0.5 hover:shadow-xl active:scale-95 transition-all duration-150 text-white shadow-lg shadow-amber-900/60">
               Start Game →
             </button>
           </div>
         ) : (
-          <div className="w-full max-w-sm rounded-3xl border border-green-900/40 bg-black/40 p-6 text-center shadow-2xl backdrop-blur fade-up" style={{ animationDelay: "120ms" }}>
+          <div className="w-full max-w-sm rounded-3xl border border-slate-800/40 bg-black/40 p-6 text-center shadow-2xl backdrop-blur fade-up" style={{ animationDelay: "120ms" }}>
             <div className="mb-3 text-3xl animate-pulse">⏳</div>
-            <p className="font-black text-lg mb-1 text-green-300">Waiting for host to start…</p>
-            <p className="text-xs text-green-800 mb-4">Your name is set — the host will start the game.</p>
+            <p className="font-black text-lg mb-1 text-amber-300">Waiting for host to start…</p>
+            <p className="text-xs text-slate-600 mb-4">Your name is set — the host will start the game.</p>
             {lobbyPlayers.length > 0 && (
               <div className="flex flex-wrap justify-center gap-1.5">
                 {lobbyPlayers.map((p) => (
-                  <span key={p.id} className="rounded-full bg-green-900/40 border border-green-800/50 px-3 py-1 text-xs font-bold text-green-400">{p.name}</span>
+                  <span key={p.id} className="rounded-full bg-slate-900/40 border border-slate-700/50 px-3 py-1 text-xs font-bold text-amber-400">{p.name}</span>
                 ))}
               </div>
             )}
@@ -406,7 +405,7 @@ export default function Stack5Page() {
         )}
 
         <button onClick={() => { getSocket().emit("leaveRoom", { roomCode }); router.push("/"); }}
-          className="text-sm text-green-900 hover:text-green-600 transition-colors">Leave room</button>
+          className="text-sm text-slate-700 hover:text-slate-400 transition-colors">Leave room</button>
       </main>
     );
   }
@@ -418,16 +417,16 @@ export default function Stack5Page() {
     const sorted = state.turnOrder.map((id) => state.players[id]).filter(Boolean).sort((a, b) => b.points - a.points);
     return (
       <main className="flex min-h-screen flex-col items-center justify-center gap-6 px-4 text-white"
-        style={{ background: "radial-gradient(ellipse at 50% 60%, #1a4d30 0%, #0a2518 60%, #060f0a 100%)" }}>
+        style={{ background: "radial-gradient(ellipse at 50% 40%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
         <span className="text-7xl fade-up">🏆</span>
         <div className="text-center fade-up" style={{ animationDelay: "80ms" }}>
-          <h1 className="text-4xl font-black tracking-tight text-green-300">{winner?.name ?? "Someone"} wins!</h1>
-          <p className="mt-1 text-green-700">{winner?.points} point{winner?.points !== 1 ? "s" : ""} scored</p>
+          <h1 className="text-4xl font-black tracking-tight text-amber-300">{winner?.name ?? "Someone"} wins!</h1>
+          <p className="mt-1 text-slate-500">{winner?.points} point{winner?.points !== 1 ? "s" : ""} scored</p>
         </div>
-        <div className="w-full max-w-xs rounded-2xl border border-green-900/50 bg-black/40 p-4 shadow-2xl fade-up" style={{ animationDelay: "160ms" }}>
+        <div className="w-full max-w-xs rounded-2xl border border-slate-800/50 bg-black/40 p-4 shadow-2xl fade-up" style={{ animationDelay: "160ms" }}>
           {sorted.map((p, i) => (
-            <div key={p.id} className="flex items-center gap-3 py-2.5 border-b border-green-900/30 last:border-0">
-              <span className="w-5 text-center font-black text-green-900">{i + 1}</span>
+            <div key={p.id} className="flex items-center gap-3 py-2.5 border-b border-slate-800/30 last:border-0">
+              <span className="w-5 text-center font-black text-slate-700">{i + 1}</span>
               <div className="h-3.5 w-3.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
               <span className="flex-1 font-bold text-green-200">{p.name}</span>
               <span className="font-black text-amber-400">{p.points} pts</span>
@@ -435,7 +434,7 @@ export default function Stack5Page() {
           ))}
         </div>
         <button onClick={() => { getSocket().emit("leaveRoom", { roomCode }); router.push("/"); }}
-          className="rounded-2xl bg-green-600 px-8 py-4 text-lg font-black hover:bg-green-500 hover:-translate-y-0.5 hover:shadow-xl active:scale-95 transition-all duration-150 fade-up text-white shadow-lg shadow-green-900/60" style={{ animationDelay: "240ms" }}>
+          className="rounded-2xl bg-amber-600 px-8 py-4 text-lg font-black hover:bg-amber-500 hover:-translate-y-0.5 hover:shadow-xl active:scale-95 transition-all duration-150 fade-up text-white shadow-lg shadow-amber-900/60" style={{ animationDelay: "240ms" }}>
           Back to Lobby
         </button>
       </main>
@@ -448,24 +447,23 @@ export default function Stack5Page() {
 
   return (
     <main className="flex h-screen flex-col text-white overflow-hidden"
-      style={{ background: "radial-gradient(ellipse at 50% 40%, #1e5c38 0%, #0d3320 55%, #061309 100%)" }}>
+      style={{ background: "radial-gradient(ellipse at 50% 40%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
 
       {/* ── Header ── */}
       <header className="flex shrink-0 items-center justify-between px-4 py-2"
         style={{ background: "rgba(0,0,0,0.55)", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
         <div className="flex items-center gap-2.5">
-          <span className="font-black text-base text-green-300 tracking-tight">Stack5</span>
-          <span className="rounded-full bg-black/40 px-2 py-0.5 font-mono text-xs text-green-800">{roomCode}</span>
+          <span className="font-black text-base text-amber-300 tracking-tight">Stack5</span>
         </div>
 
         {/* Turn banner — centre */}
         <div className="flex-1 flex justify-center mx-3">
           {isMyTurn ? (
-            <span className="turn-glow rounded-full border border-green-500/50 bg-green-950/60 px-4 py-1 text-xs font-black text-green-300 tracking-wide">
+            <span className="turn-glow rounded-full border border-amber-500/50 bg-slate-950/60 px-4 py-1 text-xs font-black text-amber-300 tracking-wide">
               YOUR TURN · {state.actionsRemaining} action{state.actionsRemaining !== 1 ? "s" : ""} left
             </span>
           ) : (
-            <span className="text-xs text-green-800 italic">
+            <span className="text-xs text-slate-600 italic">
               {currentTurnPlayer?.name}&apos;s turn
             </span>
           )}
@@ -473,25 +471,25 @@ export default function Stack5Page() {
 
         <div className="flex items-center gap-2">
           <button onClick={() => setShowLog((v) => !v)}
-            className={`text-xs px-2 py-1 rounded-lg transition-all duration-150 ${showLog ? "bg-green-800 text-green-200" : "text-green-800 hover:text-green-400"}`}>
+            className={`text-xs px-2 py-1 rounded-lg transition-all duration-150 ${showLog ? "bg-green-800 text-green-200" : "text-slate-600 hover:text-amber-400"}`}>
             📋
           </button>
           {socketId === state.hostId && (
             <>
               <button onClick={() => { emit("stack5:operator:shuffleDeck"); playSound("shuffle"); }}
-                className="text-xs px-2 py-1 rounded-lg bg-black/30 border border-green-900/40 text-green-700 hover:text-green-400 hover:border-green-700 transition-all duration-150">
+                className="text-xs px-2 py-1 rounded-lg bg-black/30 border border-slate-800/40 text-slate-500 hover:text-amber-400 hover:border-slate-700 transition-all duration-150">
                 Shuffle
               </button>
               <button onClick={() => emit("stack5:operator:transferDiscard")}
-                className="text-xs px-2 py-1 rounded-lg bg-black/30 border border-green-900/40 text-green-700 hover:text-green-400 hover:border-green-700 transition-all duration-150">
+                className="text-xs px-2 py-1 rounded-lg bg-black/30 border border-slate-800/40 text-slate-500 hover:text-amber-400 hover:border-slate-700 transition-all duration-150">
                 Transfer
               </button>
               <button onClick={() => router.push(`/game/stack5/${roomCode}/operator`)}
-                className="text-xs text-green-800 hover:text-green-400 transition-colors">⚙️</button>
+                className="text-xs text-slate-600 hover:text-amber-400 transition-colors">⚙️</button>
             </>
           )}
           <button onClick={() => { getSocket().emit("leaveRoom", { roomCode }); router.push("/"); }}
-            className="text-xs text-green-900 hover:text-green-600 transition-colors">Leave</button>
+            className="text-xs text-slate-700 hover:text-slate-400 transition-colors">Leave</button>
         </div>
       </header>
 
@@ -532,7 +530,7 @@ export default function Stack5Page() {
         {showLog && (
           <div className="w-48 shrink-0 flex flex-col overflow-hidden" style={{ background: "rgba(0,0,0,0.50)", borderRight: "1px solid rgba(255,255,255,0.03)" }}>
             <div className="px-3 py-2" style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
-              <p className="text-[9px] font-black uppercase tracking-widest text-green-900">Game Log</p>
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-700">Game Log</p>
             </div>
             <div className="flex-1 overflow-y-auto flex flex-col-reverse px-2 py-1 gap-0.5">
               {[...state.log].reverse().map((entry, i) => (
@@ -542,7 +540,7 @@ export default function Stack5Page() {
                   entry.startsWith("♻️") ? "text-cyan-500" :
                   entry.startsWith("⏰") ? "text-orange-500" :
                   entry.startsWith("🏆") ? "text-yellow-300 font-black" :
-                  "text-green-900"
+                  "text-slate-700"
                 }`}>{entry}</p>
               ))}
             </div>
@@ -577,7 +575,7 @@ export default function Stack5Page() {
             <DeckPile count={state.drawDeck.length} />
             <div className="flex flex-col items-center gap-1.5">
               <TurnTimer timeLeft={timeLeft} total={state.turnTimerSeconds} />
-              <div className="flex items-center gap-1.5 text-[10px] text-green-900">
+              <div className="flex items-center gap-1.5 text-[10px] text-slate-700">
                 <span>{state.direction === 1 ? "↻" : "↺"}</span>
                 <span>First to {state.targetScore} pts</span>
               </div>
@@ -595,34 +593,34 @@ export default function Stack5Page() {
                 <div className="flex items-center gap-4">
                   {/* Player avatar */}
                   <div className="flex items-center gap-2">
-                    <div className="h-7 w-7 rounded-full border-2 border-green-700 flex items-center justify-center text-xs font-black text-green-300"
+                    <div className="h-7 w-7 rounded-full border-2 border-slate-700 flex items-center justify-center text-xs font-black text-amber-300"
                       style={{ background: "rgba(0,0,0,0.4)" }}>
                       {me.name?.charAt(0).toUpperCase() ?? "?"}
                     </div>
-                    <span className="text-xs font-bold text-green-300 truncate max-w-[80px]">{me.name}</span>
+                    <span className="text-xs font-bold text-amber-300 truncate max-w-[80px]">{me.name}</span>
                   </div>
 
                   <div className="h-6 w-px" style={{ background: "rgba(255,255,255,0.07)" }} />
 
                   <div className="text-center">
                     <p className="text-xl font-black text-amber-400 tracking-tight leading-none">
-                      {me.points}<span className="text-xs font-semibold text-green-900">/{state.targetScore}</span>
+                      {me.points}<span className="text-xs font-semibold text-slate-700">/{state.targetScore}</span>
                     </p>
-                    <p className="text-[8px] text-green-900 uppercase tracking-widest">Points</p>
+                    <p className="text-[8px] text-slate-700 uppercase tracking-widest">Points</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xl font-black text-indigo-300 tracking-tight leading-none">{me.masterCards}</p>
-                    <p className="text-[8px] text-green-900 uppercase tracking-widest">Master Cards</p>
+                    <p className="text-[8px] text-slate-700 uppercase tracking-widest">Master Cards</p>
                   </div>
                   <div className="text-center">
                     <p className="text-xl font-black tracking-tight leading-none">{me.hand.length}</p>
-                    <p className="text-[8px] text-green-900 uppercase tracking-widest">In Hand</p>
+                    <p className="text-[8px] text-slate-700 uppercase tracking-widest">In Hand</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
                   {isMyTurn && <ActionsBar remaining={state.actionsRemaining} />}
                   {(mode.type === "card_selected" || mode.type === "trade_mode") && (
-                    <button onClick={() => setMode({ type: "idle" })} className="text-xs text-green-800 hover:text-green-500 transition-colors px-2 py-1">Cancel</button>
+                    <button onClick={() => setMode({ type: "idle" })} className="text-xs text-slate-600 hover:text-amber-500 transition-colors px-2 py-1">Cancel</button>
                   )}
                 </div>
               </div>
@@ -708,7 +706,7 @@ function HandArea({ hand, mode, canAct, draggingCardId, onCardClick, onDragStart
   const fanRise = n <= 1 ? 0 : 3;
 
   if (mode.type === "trade_mode") {
-    const label = <p className="mb-1.5 px-1 text-[9px] font-bold uppercase tracking-widest text-green-800">
+    const label = <p className="mb-1.5 px-1 text-[9px] font-bold uppercase tracking-widest text-slate-600">
       Hand · {n} {n === 1 ? "card" : "cards"} <span className="text-indigo-400 ml-1">— pick 4 unique colors or shapes</span>
     </p>;
     return (
@@ -730,11 +728,11 @@ function HandArea({ hand, mode, canAct, draggingCardId, onCardClick, onDragStart
 
   return (
     <div>
-      <p className="mb-1.5 px-1 text-[9px] font-bold uppercase tracking-widest text-green-800">
+      <p className="mb-1.5 px-1 text-[9px] font-bold uppercase tracking-widest text-slate-600">
         Hand · {n} {n === 1 ? "card" : "cards"}
       </p>
       {n === 0 ? (
-        <div className="flex h-28 items-center justify-center text-xs text-green-900 italic">Empty hand</div>
+        <div className="flex h-28 items-center justify-center text-xs text-slate-700 italic">Empty hand</div>
       ) : (
         <div className="relative flex items-end justify-center overflow-visible" style={{ height: "8.5rem", paddingBottom: "0.25rem" }}>
           {hand.map((card, idx) => {
@@ -815,9 +813,9 @@ function FanCard({ card, angle, rise, offsetX, selected, isDragging, clickable, 
 function ActionsBar({ remaining }: { remaining: number }) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="text-[9px] font-bold uppercase tracking-widest text-green-900 mr-0.5">Actions</span>
+      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-700 mr-0.5">Actions</span>
       {[0, 1].map((i) => (
-        <div key={i} className={`h-3 w-3 rounded-full transition-all duration-300 ${i < remaining ? "bg-green-400 shadow-md shadow-green-500/60 scale-110" : "bg-black/30 border border-green-900"}`} />
+        <div key={i} className={`h-3 w-3 rounded-full transition-all duration-300 ${i < remaining ? "bg-green-400 shadow-md shadow-amber-500/60 scale-110" : "bg-black/30 border border-slate-800"}`} />
       ))}
     </div>
   );
@@ -859,7 +857,7 @@ function DeckPile({ count }: { count: number }) {
           </div>
         </div>
       </div>
-      <span className="text-[9px] font-bold uppercase tracking-widest text-green-900">Deck</span>
+      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-700">Deck</span>
     </div>
   );
 }
@@ -876,10 +874,10 @@ function DiscardPile({ topCard, count }: { topCard: Stack5Card | null; count: nu
           {topCard
             ? <img src={cardImageSrc(topCard)} alt={cardAlt(topCard)} key={topCard.id}
                 className="h-full w-full object-cover card-in" draggable={false} />
-            : <div className="flex h-full items-center justify-center text-green-900 text-xl">—</div>}
+            : <div className="flex h-full items-center justify-center text-slate-700 text-xl">—</div>}
         </div>
       </div>
-      <span className="text-[9px] font-bold uppercase tracking-widest text-green-900">Discard {count}</span>
+      <span className="text-[9px] font-bold uppercase tracking-widest text-slate-700">Discard {count}</span>
     </div>
   );
 }
@@ -929,19 +927,19 @@ function MyStackSlot({ stack, canDrop, isSelectMode, canSecure, onClick, onSecur
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-[8px] font-bold uppercase tracking-widest text-green-900">Slot {stack.slotIndex + 1}</span>
+        <span className="text-[8px] font-bold uppercase tracking-widest text-slate-700">Slot {stack.slotIndex + 1}</span>
         <div className="flex gap-1">
           {dots.map((filled, i) => (
-            <div key={i} className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${filled ? "bg-green-400 scale-110" : "bg-black/40 border border-green-900/30"}`} />
+            <div key={i} className={`h-1.5 w-1.5 rounded-full transition-all duration-300 ${filled ? "bg-green-400 scale-110" : "bg-black/40 border border-slate-800/30"}`} />
           ))}
         </div>
       </div>
 
       {stack.cards.length === 0 ? (
-        <div className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-lg py-3 transition-all duration-200 ${canDrop ? "border border-dashed border-green-500/50" : "border border-dashed border-white/5"}`}>
+        <div className={`flex flex-1 flex-col items-center justify-center gap-1 rounded-lg py-3 transition-all duration-200 ${canDrop ? "border border-dashed border-amber-500/50" : "border border-dashed border-white/5"}`}>
           {canDrop
-            ? <><span className="text-lg">⬇</span><span className="text-[9px] font-bold text-green-400">Drop here</span></>
-            : <span className="text-[9px] text-green-900/60">Empty</span>}
+            ? <><span className="text-lg">⬇</span><span className="text-[9px] font-bold text-amber-400">Drop here</span></>
+            : <span className="text-[9px] text-slate-700/60">Empty</span>}
         </div>
       ) : (
         <div className="flex flex-row flex-wrap gap-1 justify-center py-1 flex-1">
@@ -950,7 +948,7 @@ function MyStackSlot({ stack, canDrop, isSelectMode, canSecure, onClick, onSecur
       )}
 
       {stack.matchType && (
-        <p className="mt-1.5 text-center text-[8px] font-bold uppercase tracking-wider text-green-800">
+        <p className="mt-1.5 text-center text-[8px] font-bold uppercase tracking-wider text-slate-600">
           {stack.matchType} · {stack.matchValue}
         </p>
       )}
@@ -1011,7 +1009,7 @@ function OpponentPanel({ player, isCurrentTurn, stealMode, myMasterCards, onStea
         ].map(({ val, label, color }) => (
           <div key={label} className="rounded-lg py-1.5 text-center" style={{ background: "rgba(0,0,0,0.25)" }}>
             <p className={`text-sm font-black ${color}`}>{val}</p>
-            <p className="text-[7px] text-green-900">{label}</p>
+            <p className="text-[7px] text-slate-700">{label}</p>
           </div>
         ))}
       </div>
@@ -1032,22 +1030,22 @@ function OpponentPanel({ player, isCurrentTurn, stealMode, myMasterCards, onStea
               }}>
               {/* Slot header */}
               <div className="flex items-center justify-between mb-1">
-                <span className="text-[7px] font-bold text-green-800">S{stack.slotIndex + 1}</span>
+                <span className="text-[7px] font-bold text-slate-600">S{stack.slotIndex + 1}</span>
                 <div className="flex items-center gap-0.5">
                   {stack.completed && <span className="text-[8px] text-amber-400 font-black leading-none mr-0.5">★</span>}
                   {dots.map((filled, i) => (
-                    <div key={i} className={`h-1 w-1 rounded-full ${filled ? "bg-green-400" : "bg-black/40 border border-green-900/30"}`} />
+                    <div key={i} className={`h-1 w-1 rounded-full ${filled ? "bg-green-400" : "bg-black/40 border border-slate-800/30"}`} />
                   ))}
                 </div>
               </div>
               {/* Cards */}
               <div className="flex flex-row flex-wrap gap-0.5 flex-1 content-start">
                 {stack.cards.length === 0
-                  ? <span className="text-[7px] text-green-900/40 italic self-center w-full text-center mt-2">empty</span>
+                  ? <span className="text-[7px] text-slate-700/40 italic self-center w-full text-center mt-2">empty</span>
                   : stack.cards.map((card, i) => <StackCard key={`${card.id}-${i}`} card={card} mini />)}
               </div>
               {stack.matchType && (
-                <p className="text-[6px] font-bold text-green-800 capitalize mt-1 tracking-wide">{stack.matchValue}</p>
+                <p className="text-[6px] font-bold text-slate-600 capitalize mt-1 tracking-wide">{stack.matchValue}</p>
               )}
             </div>
           );
@@ -1089,7 +1087,7 @@ function WildPicker({ onPick, onCancel }: { onPick: (c: CardColor, s: CardShape)
         style={{ background: "rgba(5,20,10,0.97)", border: "1px solid rgba(255,255,255,0.08)" }}>
         <h2 className="mb-5 text-center text-xl font-black tracking-tight text-green-200">Wild Card Identity</h2>
         <div className="mb-4">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-green-800">Color</p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">Color</p>
           <div className="grid grid-cols-4 gap-1.5">
             {COLORS.map((c) => (
               <button key={c} onClick={() => setColor(c)}
@@ -1100,11 +1098,11 @@ function WildPicker({ onPick, onCancel }: { onPick: (c: CardColor, s: CardShape)
           </div>
         </div>
         <div className="mb-4">
-          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-green-800">Shape</p>
+          <p className="mb-2 text-[10px] font-bold uppercase tracking-widest text-slate-600">Shape</p>
           <div className="grid grid-cols-4 gap-1.5">
             {SHAPES.map((s) => (
               <button key={s} onClick={() => setShape(s)}
-                className={`rounded-xl py-3 text-xl transition-all duration-150 ${shape === s ? "ring-2 ring-green-500 scale-105 bg-green-900/50" : "bg-black/30 border border-green-900 opacity-60 hover:opacity-90 hover:scale-[1.03]"}`}>
+                className={`rounded-xl py-3 text-xl transition-all duration-150 ${shape === s ? "ring-2 ring-amber-500 scale-105 bg-slate-900/50" : "bg-black/30 border border-slate-800 opacity-60 hover:opacity-90 hover:scale-[1.03]"}`}>
                 {SHAPE_EMOJI[s]}
               </button>
             ))}
@@ -1117,7 +1115,7 @@ function WildPicker({ onPick, onCancel }: { onPick: (c: CardColor, s: CardShape)
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={onCancel} className="flex-1 rounded-xl py-3 font-bold hover:-translate-y-0.5 transition-all duration-150 text-green-300"
+          <button onClick={onCancel} className="flex-1 rounded-xl py-3 font-bold hover:-translate-y-0.5 transition-all duration-150 text-amber-300"
             style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(255,255,255,0.08)" }}>Cancel</button>
           <button onClick={() => onPick(color, shape)} className="flex-1 rounded-xl py-3 font-bold text-white hover:-translate-y-0.5 hover:shadow-lg active:scale-95 transition-all duration-150"
             style={{ background: "#16a34a" }}>Play Wild</button>
@@ -1147,11 +1145,11 @@ function TargetOverlay({ label, players, onSelect, onCancel }: {
                 {p.name.charAt(0).toUpperCase()}
               </div>
               <span className="flex-1 font-bold text-white/80">{p.name}</span>
-              <span className="text-xs text-green-800">🤚 {p.hand.length}</span>
+              <span className="text-xs text-slate-600">🤚 {p.hand.length}</span>
             </button>
           ))}
         </div>
-        <button onClick={onCancel} className="w-full rounded-xl py-3 font-bold hover:-translate-y-0.5 transition-all duration-150 text-green-400"
+        <button onClick={onCancel} className="w-full rounded-xl py-3 font-bold hover:-translate-y-0.5 transition-all duration-150 text-amber-400"
           style={{ background: "rgba(0,0,0,0.30)", border: "1px solid rgba(255,255,255,0.06)" }}>Cancel</button>
       </div>
     </div>

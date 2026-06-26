@@ -92,10 +92,10 @@ export default function LobbyPage() {
   if (!room) {
     return (
       <main className="flex min-h-screen items-center justify-center text-white"
-        style={{ background: "radial-gradient(ellipse at 50% 60%, #1a4d30 0%, #0a2518 60%, #060f0a 100%)" }}>
+        style={{ background: "radial-gradient(ellipse at 50% 40%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
         <div className="text-center fade-up">
           <div className="text-4xl mb-4 animate-pulse">🎮</div>
-          <p className="text-green-400 font-bold">Connecting to lobby…</p>
+          <p className="text-amber-400 font-bold">Connecting to lobby…</p>
         </div>
       </main>
     );
@@ -103,18 +103,16 @@ export default function LobbyPage() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-5 px-4 py-8 text-white"
-      style={{ background: "radial-gradient(ellipse at 50% 60%, #1a4d30 0%, #0a2518 60%, #060f0a 100%)" }}>
+      style={{ background: "radial-gradient(ellipse at 50% 40%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
 
-      {/* Room code */}
-      <div className="text-center fade-up">
-        <p className="text-xs font-bold uppercase tracking-widest text-green-800 mb-1">Room Code</p>
-        <h1 className="text-5xl font-black tracking-[0.3em] text-green-300">{roomCode?.toUpperCase()}</h1>
-        {isHost && (
-          <span className="mt-2 inline-block rounded-full bg-green-900/60 border border-green-700/40 px-3 py-0.5 text-xs font-bold text-green-400">
+      {/* Host badge */}
+      {isHost && (
+        <div className="text-center fade-up">
+          <span className="inline-block rounded-full bg-amber-900/60 border border-amber-700/40 px-3 py-0.5 text-xs font-bold text-amber-300">
             You are the host
           </span>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Error toast */}
       {lobbyError && (
@@ -126,8 +124,8 @@ export default function LobbyPage() {
       <div className="w-full max-w-sm flex flex-col gap-4">
 
         {/* Game picker */}
-        <div className="rounded-2xl border border-green-900/40 bg-black/40 p-4 backdrop-blur fade-up" style={{ animationDelay: "60ms" }}>
-          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-green-800">
+        <div className="rounded-2xl border border-slate-800/60 bg-black/40 p-4 backdrop-blur fade-up" style={{ animationDelay: "60ms" }}>
+          <p className="mb-3 text-[10px] font-black uppercase tracking-widest text-slate-500">
             {isHost ? "Select a Game" : "Selected Game"}
           </p>
           <div className="flex flex-col gap-2">
@@ -141,23 +139,23 @@ export default function LobbyPage() {
                   disabled={!isHost}
                   className={`flex items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all duration-200
                     ${isSelected
-                      ? "border-green-500/60 bg-green-950/60 shadow-lg shadow-green-900/20"
-                      : "border-green-900/30 bg-black/20 hover:border-green-700/40 hover:bg-green-900/10"}
+                      ? "border-amber-500/60 bg-slate-900/60 shadow-lg shadow-amber-900/20"
+                      : "border-slate-800/40 bg-black/20 hover:border-amber-700/40 hover:bg-slate-900/20"}
                     ${!isHost ? "cursor-default" : "cursor-pointer active:scale-[0.98]"}
                   `}
                 >
                   <span className="text-2xl">{GAME_ICONS[game.id] ?? "🎮"}</span>
                   <div className="flex flex-1 flex-col gap-0.5">
                     <div className="flex items-center gap-2">
-                      <span className="text-sm font-black text-green-200">{game.name}</span>
+                      <span className="text-sm font-black text-white">{game.name}</span>
                       {isSelected && (
-                        <span className="rounded-full bg-green-700/60 border border-green-600/40 px-2 py-0.5 text-[9px] font-black text-green-300">
+                        <span className="rounded-full bg-amber-700/60 border border-amber-600/40 px-2 py-0.5 text-[9px] font-black text-amber-300">
                           Selected
                         </span>
                       )}
                     </div>
-                    <p className="text-[10px] text-green-800 leading-relaxed">{game.description}</p>
-                    <p className="text-[9px] text-green-900">
+                    <p className="text-[10px] text-slate-500 leading-relaxed">{game.description}</p>
+                    <p className="text-[9px] text-slate-600">
                       {game.minPlayers}–{game.maxPlayers} players
                       {notEnough && (
                         <span className="ml-1 text-amber-700">
@@ -166,7 +164,7 @@ export default function LobbyPage() {
                       )}
                     </p>
                   </div>
-                  {isSelected && <span className="text-green-400 text-sm">✓</span>}
+                  {isSelected && <span className="text-amber-400 text-sm">✓</span>}
                 </button>
               );
             })}
@@ -174,10 +172,10 @@ export default function LobbyPage() {
         </div>
 
         {/* Players */}
-        <div className="rounded-2xl border border-green-900/40 bg-black/40 p-4 backdrop-blur fade-up" style={{ animationDelay: "120ms" }}>
+        <div className="rounded-2xl border border-slate-800/60 bg-black/40 p-4 backdrop-blur fade-up" style={{ animationDelay: "120ms" }}>
           <div className="mb-3 flex items-center justify-between">
-            <p className="text-[10px] font-black uppercase tracking-widest text-green-800">Players</p>
-            <p className="text-[10px] text-green-900">{players.length} connected</p>
+            <p className="text-[10px] font-black uppercase tracking-widest text-slate-500">Players</p>
+            <p className="text-[10px] text-slate-600">{players.length} connected</p>
           </div>
           <div className="flex flex-col gap-1.5">
             {players.map((player: Player) => (
@@ -187,11 +185,11 @@ export default function LobbyPage() {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     {/* Avatar */}
-                    <div className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-black text-green-300"
-                      style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(74,222,128,0.2)" }}>
+                    <div className="h-6 w-6 rounded-full flex items-center justify-center text-xs font-black text-amber-300"
+                      style={{ background: "rgba(0,0,0,0.4)", border: "1px solid rgba(245,158,11,0.2)" }}>
                       {(player.displayName ?? player.id).charAt(0).toUpperCase()}
                     </div>
-                    <span className="text-sm font-bold text-green-200">
+                    <span className="text-sm font-bold text-white">
                       {player.displayName ?? player.id.slice(0, 8) + "…"}
                     </span>
                     {player.isBot && (
@@ -201,10 +199,10 @@ export default function LobbyPage() {
                       <span className="rounded-full bg-amber-900/60 border border-amber-700/40 px-1.5 py-0.5 text-[8px] font-bold text-amber-300">Host</span>
                     )}
                     {player.id === socketId && !player.isBot && (
-                      <span className="rounded-full bg-green-900/40 border border-green-800/30 px-1.5 py-0.5 text-[8px] text-green-700">You</span>
+                      <span className="rounded-full bg-slate-800/60 border border-slate-700/40 px-1.5 py-0.5 text-[8px] text-slate-400">You</span>
                     )}
                   </div>
-                  <span className={`text-xs font-black ${player.ready ? "text-green-400" : "text-green-900"}`}>
+                  <span className={`text-xs font-black ${player.ready ? "text-amber-400" : "text-slate-600"}`}>
                     {player.ready ? "✓ Ready" : "Not ready"}
                   </span>
                 </div>
@@ -214,7 +212,7 @@ export default function LobbyPage() {
                     <select
                       value={player.botType ?? "easy"}
                       onChange={(e) => handleSetBotDifficulty(player.id, e.target.value as BotType)}
-                      className="flex-1 rounded-lg bg-black/30 border border-green-900/40 px-2 py-1 text-xs text-green-300 outline-none focus:border-green-700">
+                      className="flex-1 rounded-lg bg-black/30 border border-slate-700/40 px-2 py-1 text-xs text-slate-300 outline-none focus:border-amber-600">
                       <option value="easy">Easy</option>
                       <option value="medium">Medium</option>
                       <option value="hard">Hard</option>
@@ -235,8 +233,8 @@ export default function LobbyPage() {
           <button onClick={handleReady}
             className={`w-full rounded-2xl py-4 text-base font-black transition-all duration-150 hover:-translate-y-0.5 hover:shadow-xl active:scale-95 shadow-lg ${
               myReady
-                ? "bg-green-600 text-white shadow-green-900/50"
-                : "bg-black/40 border border-green-900/50 text-green-600 hover:bg-green-900/20"
+                ? "bg-amber-600 text-white shadow-amber-900/50"
+                : "bg-black/40 border border-slate-700/50 text-slate-400 hover:bg-slate-900/20"
             }`}>
             {myReady ? "✓ Ready" : "Set Ready"}
           </button>
@@ -252,15 +250,15 @@ export default function LobbyPage() {
             <button onClick={handleStart} disabled={!canStart}
               className={`w-full rounded-2xl py-4 text-base font-black transition-all duration-150 shadow-lg
                 ${canStart
-                  ? "bg-green-600 text-white hover:-translate-y-0.5 hover:bg-green-500 hover:shadow-xl active:scale-95 shadow-green-900/60"
-                  : "bg-black/20 border border-green-900/30 text-green-900 cursor-not-allowed"
+                  ? "bg-amber-600 text-white hover:-translate-y-0.5 hover:bg-amber-500 hover:shadow-xl active:scale-95 shadow-amber-900/60"
+                  : "bg-black/20 border border-slate-800/40 text-slate-700 cursor-not-allowed"
                 }`}>
               {startLabel}
             </button>
           )}
 
           <button onClick={handleLeave}
-            className="text-xs text-green-900 hover:text-green-600 transition-colors text-center pt-1">
+            className="text-xs text-slate-600 hover:text-slate-400 transition-colors text-center pt-1">
             Leave Room
           </button>
         </div>

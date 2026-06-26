@@ -78,10 +78,10 @@ function PropertyCarousel({
           <div>
             <p className="text-xs font-black text-white leading-snug">{fullName}</p>
             {current.color && (
-              <span className="text-[10px] text-green-800 capitalize">{COLOR_LABELS[current.color]}</span>
+              <span className="text-[10px] text-slate-600 capitalize">{COLOR_LABELS[current.color]}</span>
             )}
-            {space?.type === "railroad" && <span className="text-[10px] text-green-800">Railway</span>}
-            {space?.type === "utility" && <span className="text-[10px] text-green-800">Utility</span>}
+            {space?.type === "railroad" && <span className="text-[10px] text-slate-600">Railway</span>}
+            {space?.type === "utility" && <span className="text-[10px] text-slate-600">Utility</span>}
           </div>
           <div className="flex flex-col items-end gap-1">
             {isMonopoly && (
@@ -93,7 +93,7 @@ function PropertyCarousel({
           </div>
         </div>
 
-        <div className="flex items-center justify-between text-[10px] text-green-800">
+        <div className="flex items-center justify-between text-[10px] text-slate-600">
           <span>Rent: <span className="font-bold text-yellow-400">${current.rent}</span></span>
           <span>
             {current.hasHotel ? "🏨" : current.houseCount > 0 ? `${"🏠".repeat(current.houseCount)}` : ""}
@@ -106,14 +106,14 @@ function PropertyCarousel({
       <div className="flex items-center justify-between px-2 py-1.5" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
         <button
           onClick={(e) => { e.stopPropagation(); setCursor((cursor - 1 + total) % total); }}
-          className="rounded-lg px-2.5 py-1 text-xs font-bold text-green-800 hover:text-green-400 transition-all"
+          className="rounded-lg px-2.5 py-1 text-xs font-bold text-slate-600 hover:text-amber-400 transition-all"
         >
           ‹ Prev
         </button>
-        <span className="text-[10px] text-green-900">{cursor + 1} / {total}</span>
+        <span className="text-[10px] text-slate-700">{cursor + 1} / {total}</span>
         <button
           onClick={(e) => { e.stopPropagation(); setCursor((cursor + 1) % total); }}
-          className="rounded-lg px-2.5 py-1 text-xs font-bold text-green-800 hover:text-green-400 transition-all"
+          className="rounded-lg px-2.5 py-1 text-xs font-bold text-slate-600 hover:text-amber-400 transition-all"
         >
           Next ›
         </button>
@@ -168,11 +168,11 @@ function PlayerPortfolio({
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1.5 flex-wrap">
-            <span className={`text-sm font-bold truncate ${player.bankrupt ? "line-through text-green-900" : "text-white"}`}>
+            <span className={`text-sm font-bold truncate ${player.bankrupt ? "line-through text-slate-700" : "text-white"}`}>
               {player.name}
             </span>
             {isMe && (
-              <span className="rounded-full bg-green-900/40 border border-green-800/30 px-1.5 py-0.5 text-[9px] text-green-700">You</span>
+              <span className="rounded-full bg-amber-900/40 border border-amber-800/30 px-1.5 py-0.5 text-[9px] text-slate-500">You</span>
             )}
             {player.isBot && !player.bankrupt && (
               <span className="rounded-full bg-sky-900 px-1.5 py-0.5 text-[9px] text-sky-400">BOT</span>
@@ -181,16 +181,16 @@ function PlayerPortfolio({
               <span className="rounded-full bg-red-900 px-1.5 py-0.5 text-[9px] text-red-400">Jail</span>
             )}
             {player.bankrupt && (
-              <span className="rounded-full bg-black/30 border border-white/5 px-1.5 py-0.5 text-[9px] text-green-900">Bankrupt</span>
+              <span className="rounded-full bg-black/30 border border-white/5 px-1.5 py-0.5 text-[9px] text-slate-700">Bankrupt</span>
             )}
             {isCurrentTurn && !player.bankrupt && (
               <span className="rounded-full bg-blue-900/60 border border-blue-700/40 px-1.5 py-0.5 text-[9px] text-blue-300">● Turn</span>
             )}
           </div>
           <div className="flex items-center gap-2 mt-0.5">
-            <span className="text-xs font-bold text-green-400">${player.cash}</span>
-            <span className="text-[10px] text-green-900">·</span>
-            <span className="text-[10px] text-green-800">NW: ${worth.toLocaleString()}</span>
+            <span className="text-xs font-bold text-amber-400">${player.cash}</span>
+            <span className="text-[10px] text-slate-700">·</span>
+            <span className="text-[10px] text-slate-600">NW: ${worth.toLocaleString()}</span>
           </div>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
@@ -203,7 +203,7 @@ function PlayerPortfolio({
               title={COLOR_LABELS[c]}
             />
           ))}
-          <span className="text-green-900 text-xs ml-1">{expanded ? "▲" : "▼"}</span>
+          <span className="text-slate-700 text-xs ml-1">{expanded ? "▲" : "▼"}</span>
         </div>
       </button>
 
@@ -213,22 +213,22 @@ function PlayerPortfolio({
           {/* Stats row */}
           <div className="grid grid-cols-3 gap-1.5 text-center">
             <div className="rounded-lg px-2 py-1.5" style={{ background: "rgba(0,0,0,0.30)" }}>
-              <p className="text-[9px] text-green-800 uppercase">Props</p>
+              <p className="text-[9px] text-slate-600 uppercase">Props</p>
               <p className="text-xs font-bold text-white">{myProps.length}</p>
             </div>
             <div className="rounded-lg px-2 py-1.5" style={{ background: "rgba(0,0,0,0.30)" }}>
-              <p className="text-[9px] text-green-800 uppercase">Monop.</p>
+              <p className="text-[9px] text-slate-600 uppercase">Monop.</p>
               <p className="text-xs font-bold text-yellow-400">{monopolyColors.length}</p>
             </div>
             <div className="rounded-lg px-2 py-1.5" style={{ background: "rgba(0,0,0,0.30)" }}>
-              <p className="text-[9px] text-green-800 uppercase">Mortgd</p>
+              <p className="text-[9px] text-slate-600 uppercase">Mortgd</p>
               <p className="text-xs font-bold text-orange-400">{mortgagedCount}</p>
             </div>
           </div>
 
           {/* GOJF cards */}
           {(player.getOutOfJailFreeCards ?? 0) > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-green-400">
+            <div className="flex items-center gap-1.5 text-xs text-amber-400">
               <span>🃏</span>
               <span>{player.getOutOfJailFreeCards} × Get Out of Jail Free</span>
             </div>
@@ -247,8 +247,8 @@ function PlayerPortfolio({
                   <div key={color}>
                     <div className="flex items-center gap-1.5 mb-1">
                       <div className="h-2 w-4 rounded-sm" style={{ backgroundColor: PROPERTY_COLORS[color] }} />
-                      <span className="text-[10px] font-semibold text-green-700">{COLOR_LABELS[color]}</span>
-                      <span className="text-[10px] text-green-900">{owned.length}/{group.length}</span>
+                      <span className="text-[10px] font-semibold text-slate-500">{COLOR_LABELS[color]}</span>
+                      <span className="text-[10px] text-slate-700">{owned.length}/{group.length}</span>
                       {isFullSet && <span className="text-[9px] font-black text-yellow-400">★</span>}
                     </div>
                     <div className="flex flex-col gap-0.5">
@@ -266,7 +266,7 @@ function PlayerPortfolio({
                               {p.mortgaged && <span className="text-[9px] text-orange-400">MTG</span>}
                               <span className="text-[10px] text-gray-200 truncate">{name}</span>
                             </div>
-                            <span className="text-[10px] text-green-800 shrink-0">
+                            <span className="text-[10px] text-slate-600 shrink-0">
                               {p.hasHotel ? "🏨" : p.houseCount > 0 ? `${p.houseCount}🏠` : ""}
                             </span>
                           </button>
@@ -281,9 +281,9 @@ function PlayerPortfolio({
               {railroads.length > 0 && (
                 <div>
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px] text-green-800">🚂</span>
-                    <span className="text-[10px] font-semibold text-green-700">Railways</span>
-                    <span className="text-[10px] text-green-900">{railroads.length}/4</span>
+                    <span className="text-[10px] text-slate-600">🚂</span>
+                    <span className="text-[10px] font-semibold text-slate-500">Railways</span>
+                    <span className="text-[10px] text-slate-700">{railroads.length}/4</span>
                   </div>
                   {railroads.map((p) => (
                     <button
@@ -302,9 +302,9 @@ function PlayerPortfolio({
               {utilities.length > 0 && (
                 <div>
                   <div className="flex items-center gap-1.5 mb-1">
-                    <span className="text-[10px] text-green-800">⚡</span>
-                    <span className="text-[10px] font-semibold text-green-700">Utilities</span>
-                    <span className="text-[10px] text-green-900">{utilities.length}/2</span>
+                    <span className="text-[10px] text-slate-600">⚡</span>
+                    <span className="text-[10px] font-semibold text-slate-500">Utilities</span>
+                    <span className="text-[10px] text-slate-700">{utilities.length}/2</span>
                   </div>
                   {utilities.map((p) => (
                     <button
@@ -322,7 +322,7 @@ function PlayerPortfolio({
           )}
 
           {myProps.length === 0 && (
-            <p className="text-[10px] text-green-900 italic text-center py-1">No properties owned.</p>
+            <p className="text-[10px] text-slate-700 italic text-center py-1">No properties owned.</p>
           )}
         </div>
       )}
@@ -418,7 +418,7 @@ export default function PlayerPanel({
       {/* Dice result */}
       {state.lastRoll && (
         <div className="rounded-xl p-3 text-center" style={{ background: "rgba(0,0,0,0.40)", border: "1px solid rgba(255,255,255,0.05)" }}>
-          <p className="text-[9px] font-black uppercase tracking-widest text-green-900">Last Roll</p>
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-700">Last Roll</p>
           <div className="mt-1 flex items-center justify-center gap-3">
             <Die value={state.lastRoll.die1} />
             <Die value={state.lastRoll.die2} />
@@ -433,21 +433,21 @@ export default function PlayerPanel({
       )}
 
       {/* Supply tracker */}
-      <div className="flex gap-2 rounded-xl px-3 py-2 text-xs text-green-800"
+      <div className="flex gap-2 rounded-xl px-3 py-2 text-xs text-slate-600"
         style={{ background: "rgba(0,0,0,0.30)", border: "1px solid rgba(255,255,255,0.04)" }}>
         <span>🏠 {state.housesRemaining} left</span>
-        <span className="mx-1 text-green-900">|</span>
+        <span className="mx-1 text-slate-700">|</span>
         <span>🏨 {state.hotelsRemaining} left</span>
       </div>
 
       {/* Turn indicator */}
       <div className="rounded-xl px-3 py-2 text-center" style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.05)" }}>
         {isMyTurn ? (
-          <p className="text-sm font-black text-green-300 turn-glow rounded-full">Your turn — {state.phase}</p>
+          <p className="text-sm font-black text-amber-300 turn-glow rounded-full">Your turn — {state.phase}</p>
         ) : (
-          <p className="text-sm text-green-800">
-            <span className="font-bold text-green-400">{state.players[currentPlayerId]?.name}</span>
-            <span className="text-green-900 text-xs ml-1">({state.phase})</span>
+          <p className="text-sm text-slate-600">
+            <span className="font-bold text-amber-400">{state.players[currentPlayerId]?.name}</span>
+            <span className="text-slate-700 text-xs ml-1">({state.phase})</span>
           </p>
         )}
       </div>
@@ -460,7 +460,7 @@ export default function PlayerPanel({
             {myPlayer.getOutOfJailFreeCards > 0 && (
               <button
                 onClick={onUseGojf}
-                className="w-full rounded-xl bg-green-700 py-2 text-xs font-bold hover:bg-green-600 active:scale-95 transition-all"
+                className="w-full rounded-xl bg-amber-700 py-2 text-xs font-bold hover:bg-amber-600 active:scale-95 transition-all"
               >
                 Use Get Out of Jail Free Card
               </button>
@@ -473,7 +473,7 @@ export default function PlayerPanel({
                 Pay $50 Fine
               </button>
             )}
-            <p className="text-center text-xs text-green-800">Or roll for doubles to escape</p>
+            <p className="text-center text-xs text-slate-600">Or roll for doubles to escape</p>
           </div>
         </div>
       )}
@@ -481,7 +481,7 @@ export default function PlayerPanel({
       {/* Build section */}
       {buildable.length > 0 && (
         <div className="rounded-xl p-3" style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.05)" }}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-green-800">Build</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-600">Build</p>
           <div className="flex flex-col gap-1.5">
             {buildable.map((p: PropertyOwnership) => {
               const colorHex = p.color ? PROPERTY_COLORS[p.color] : "#374151";
@@ -493,11 +493,11 @@ export default function PlayerPanel({
                   <div className="flex items-center gap-1.5">
                     <div className="h-2.5 w-2.5 rounded-sm shrink-0" style={{ backgroundColor: colorHex }} />
                     <span className="text-xs text-gray-300 truncate">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
-                    {p.houseCount > 0 && <span className="text-[10px] text-green-800">{p.houseCount}🏠</span>}
+                    {p.houseCount > 0 && <span className="text-[10px] text-slate-600">{p.houseCount}🏠</span>}
                   </div>
                   <button
                     onClick={() => onBuyBuilding(p.spaceIndex)}
-                    className="shrink-0 rounded-lg bg-green-700 px-2 py-1 text-[10px] font-bold hover:bg-green-600 active:scale-95 transition-all"
+                    className="shrink-0 rounded-lg bg-amber-700 px-2 py-1 text-[10px] font-bold hover:bg-amber-600 active:scale-95 transition-all"
                   >
                     {label}
                   </button>
@@ -511,7 +511,7 @@ export default function PlayerPanel({
       {/* Property management */}
       {(sellable.length > 0 || mortgageable.length > 0 || unmortgageable.length > 0) && myPlayer && !myPlayer.bankrupt && (
         <div className="rounded-xl p-3" style={{ background: "rgba(0,0,0,0.35)", border: "1px solid rgba(255,255,255,0.05)" }}>
-          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-green-800">Property Actions</p>
+          <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-600">Property Actions</p>
           <div className="flex flex-col gap-1.5">
             {sellable.map((p: PropertyOwnership) => {
               const costs: Record<string, number> = { brown: 50, lightblue: 50, pink: 100, orange: 100, red: 150, yellow: 150, green: 200, darkblue: 200 };
@@ -521,7 +521,7 @@ export default function PlayerPanel({
                   <div className="flex items-center gap-1.5">
                     {p.color && <div className="h-2 w-2 rounded-sm shrink-0" style={{ backgroundColor: PROPERTY_COLORS[p.color] }} />}
                     <span className="text-xs text-gray-300 truncate">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
-                    <span className="text-[10px] text-green-800">{p.hasHotel ? "🏨" : `${p.houseCount}🏠`}</span>
+                    <span className="text-[10px] text-slate-600">{p.hasHotel ? "🏨" : `${p.houseCount}🏠`}</span>
                   </div>
                   <button
                     onClick={() => onSellBuilding(p.spaceIndex)}
@@ -549,7 +549,7 @@ export default function PlayerPanel({
               return (
                 <div key={`unmtg-${p.spaceIndex}`} className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-green-800 line-through truncate">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
+                    <span className="text-xs text-slate-600 line-through truncate">{FULL_NAMES[p.spaceIndex] ?? p.name}</span>
                     <span className="text-[9px] text-orange-400">mtg</span>
                   </div>
                   <button
@@ -572,14 +572,14 @@ export default function PlayerPanel({
           <button
             onClick={onRoll}
             disabled={state.phase !== "rolling"}
-            className="w-full rounded-xl bg-green-600 py-3 text-base font-black text-white hover:bg-green-500 hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-40 transition-all active:scale-95 shadow-lg shadow-green-900/50"
+            className="w-full rounded-xl bg-amber-600 py-3 text-base font-black text-white hover:bg-amber-500 hover:-translate-y-0.5 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-40 transition-all active:scale-95 shadow-lg shadow-amber-900/50"
           >
             🎲 Roll Dice
           </button>
           <button
             onClick={onEndTurn}
             disabled={state.phase !== "ended"}
-            className="w-full rounded-xl py-3 text-base font-black text-green-600 border border-green-900/40 hover:bg-green-900/20 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 transition-all active:scale-95"
+            className="w-full rounded-xl py-3 text-base font-black text-slate-400 border border-slate-700/40 hover:bg-slate-900/20 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40 transition-all active:scale-95"
           >
             End Turn →
           </button>
@@ -599,7 +599,7 @@ export default function PlayerPanel({
       {/* My property carousel */}
       {myOwnedProps.length > 0 && (
         <div>
-          <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-green-800 px-0.5">My Properties</p>
+          <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-slate-600 px-0.5">My Properties</p>
           <PropertyCarousel
             props={myOwnedProps}
             state={state}
@@ -610,7 +610,7 @@ export default function PlayerPanel({
 
       {/* Player portfolio list */}
       <div>
-        <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-green-800 px-0.5">Players</p>
+        <p className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-slate-600 px-0.5">Players</p>
         <div className="flex flex-col gap-2">
           {playerOrder.map((id) => {
             const p = state.players[id];
@@ -646,7 +646,7 @@ function Die({ value }: { value: number }) {
       {(dots[value] ?? []).map(([x, y], i) => (
         <div
           key={i}
-          className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-green-950"
+          className="absolute h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-slate-950"
           style={{ left: `${x}%`, top: `${y}%` }}
         />
       ))}

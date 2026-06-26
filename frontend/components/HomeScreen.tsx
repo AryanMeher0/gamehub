@@ -143,10 +143,10 @@ export default function HomeScreen() {
   const openRooms = rooms.filter((r) => !r.gameId); // created but game not yet selected
 
   return (
-    <main className="min-h-screen" style={{ background: "#e8f5e9" }}>
+    <main className="min-h-screen" style={{ background: "radial-gradient(ellipse at 50% 30%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
 
       {/* ── Header ── */}
-      <header style={{ background: "linear-gradient(135deg, #1b5e20 0%, #2e7d32 50%, #388e3c 100%)" }}
+      <header style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)" }}
         className="px-6 py-5 shadow-xl">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
@@ -156,21 +156,21 @@ export default function HomeScreen() {
             </div>
             <div>
               <h1 className="text-2xl font-black text-white tracking-tight leading-none">GameHub</h1>
-              <p className="text-xs text-green-300 mt-0.5">Multiplayer games — no sign up needed</p>
+              <p className="text-xs text-amber-300 mt-0.5">Multiplayer games — no sign up needed</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 flex-1 max-w-xs">
             <div className="flex-1 relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-green-400 text-sm">👤</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-400 text-sm">👤</span>
               <input
                 type="text"
                 maxLength={20}
                 value={name}
                 onChange={(e) => setAndSaveName(e.target.value)}
                 placeholder="Your name…"
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl font-bold text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-300 transition-all"
-                style={{ background: "rgba(255,255,255,0.92)" }}
+                className="w-full pl-9 pr-4 py-2.5 rounded-xl font-bold text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-amber-500/40 transition-all"
+                style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
               />
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function HomeScreen() {
 
       {/* ── Error banner ── */}
       {error && (
-        <div className="bg-red-100 border-l-4 border-red-500 px-6 py-3 text-sm font-bold text-red-700 flex items-center justify-between">
+        <div className="bg-red-950/80 border-l-4 border-red-500 px-6 py-3 text-sm font-bold text-red-300 flex items-center justify-between">
           <span>⚠ {error}</span>
           <button onClick={() => setError("")} className="text-red-400 hover:text-red-600 ml-4">✕</button>
         </div>
@@ -221,9 +221,9 @@ export default function HomeScreen() {
               {/* Open rooms */}
               {waiting.length > 0 && (
                 <div className="mb-4">
-                  <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2">
                     Open
-                    <span className="rounded-full bg-green-500 text-white px-2 py-0.5 text-[10px]">{waiting.length}</span>
+                    <span className="rounded-full bg-amber-500 text-white px-2 py-0.5 text-[10px]">{waiting.length}</span>
                   </p>
                   <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {waiting.map((room) => (
@@ -237,7 +237,7 @@ export default function HomeScreen() {
               {/* In progress rooms */}
               {playing.length > 0 && (
                 <div>
-                  <p className="text-xs font-black uppercase tracking-widest text-gray-500 mb-2 flex items-center gap-2">
+                  <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2 flex items-center gap-2">
                     In Progress
                     <span className="rounded-full bg-orange-400 text-white px-2 py-0.5 text-[10px]">{playing.length}</span>
                   </p>
@@ -251,10 +251,10 @@ export default function HomeScreen() {
               )}
 
               {waiting.length === 0 && playing.length === 0 && (
-                <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white/40 py-8 text-center">
+                <div className="rounded-2xl border-2 border-dashed border-slate-700 bg-black/20 py-8 text-center">
                   <p className="text-2xl mb-2">{game.icon}</p>
-                  <p className="font-bold text-gray-400 text-sm">No {game.label} games yet</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Be the first to create one!</p>
+                  <p className="font-bold text-slate-500 text-sm">No {game.label} games yet</p>
+                  <p className="text-xs text-slate-500 mt-0.5">Be the first to create one!</p>
                 </div>
               )}
             </section>
@@ -262,8 +262,8 @@ export default function HomeScreen() {
         })}
 
         {/* ── How to play ── */}
-        <section className="rounded-2xl bg-white p-6 shadow-sm border border-gray-100">
-          <h3 className="text-lg font-black text-gray-800 mb-4">How to Play</h3>
+        <section className="rounded-2xl bg-slate-900/80 p-6 shadow-sm border border-slate-800">
+          <h3 className="text-lg font-black text-white mb-4">How to Play</h3>
           <div className="grid sm:grid-cols-3 gap-4">
             {[
               { step: "1", title: "Enter your name", desc: "Type your name above — it's remembered next time." },
@@ -271,10 +271,10 @@ export default function HomeScreen() {
               { step: "3", title: "Play!", desc: "Stack5: build 5-card stacks by color or shape. First to 3 points wins." },
             ].map(({ step, title, desc }) => (
               <div key={step} className="flex gap-3">
-                <div className="h-8 w-8 rounded-full bg-green-500 text-white font-black flex items-center justify-center shrink-0 text-sm shadow">{step}</div>
+                <div className="h-8 w-8 rounded-full bg-amber-500 text-white font-black flex items-center justify-center shrink-0 text-sm shadow">{step}</div>
                 <div>
-                  <p className="font-bold text-gray-800 text-sm">{title}</p>
-                  <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{desc}</p>
+                  <p className="font-bold text-white text-sm">{title}</p>
+                  <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{desc}</p>
                 </div>
               </div>
             ))}
@@ -297,35 +297,35 @@ function RoomCard({ room, game, joining, onJoin, playing }: {
   const isJoining = joining === room.roomCode;
 
   return (
-    <div className="rounded-2xl bg-white border border-gray-100 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
-      <div className="h-1.5" style={{ background: playing ? "#f97316" : "#16a34a" }} />
+    <div className="rounded-2xl bg-slate-900/80 border border-slate-800 shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden">
+      <div className="h-1.5" style={{ background: playing ? "#f97316" : "#f59e0b" }} />
       <div className="p-4">
         <div className="flex items-start justify-between mb-3">
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xl">{game.icon}</span>
-              <span className="font-black text-gray-800">{game.label}</span>
+              <span className="font-black text-white">{game.label}</span>
             </div>
             <div className="flex items-center gap-1.5 mt-1">
-              <div className={`h-2 w-2 rounded-full ${playing ? "bg-orange-400 animate-pulse" : "bg-green-400 animate-pulse"}`} />
-              <span className={`text-xs font-bold ${playing ? "text-orange-500" : "text-green-600"}`}>
+              <div className={`h-2 w-2 rounded-full ${playing ? "bg-orange-400 animate-pulse" : "bg-amber-400 animate-pulse"}`} />
+              <span className={`text-xs font-bold ${playing ? "text-orange-500" : "text-amber-600"}`}>
                 {playing ? "In progress" : "Waiting for players"}
               </span>
             </div>
           </div>
           <div className="text-right">
-            <p className="text-2xl font-black text-gray-800">{room.playerCount}</p>
-            <p className="text-[10px] text-gray-400 uppercase tracking-wide">player{room.playerCount !== 1 ? "s" : ""}</p>
+            <p className="text-2xl font-black text-white">{room.playerCount}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide">player{room.playerCount !== 1 ? "s" : ""}</p>
           </div>
         </div>
 
         {room.playerNames.length > 0 && (
           <div className="flex flex-wrap gap-1 mb-3">
             {room.playerNames.slice(0, 5).map((n, i) => (
-              <span key={i} className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{n}</span>
+              <span key={i} className="rounded-full bg-slate-800 px-2 py-0.5 text-xs font-medium text-slate-400">{n}</span>
             ))}
             {room.playerNames.length > 5 && (
-              <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">+{room.playerNames.length - 5}</span>
+              <span className="rounded-full bg-slate-800 px-2 py-0.5 text-xs text-slate-500">+{room.playerNames.length - 5}</span>
             )}
           </div>
         )}
@@ -335,9 +335,9 @@ function RoomCard({ room, game, joining, onJoin, playing }: {
           disabled={!!joining}
           className="w-full rounded-xl py-2.5 text-sm font-black transition-all duration-150 hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0"
           style={{
-            background: playing ? "#fff7ed" : "#f0fdf4",
-            color: playing ? "#c2410c" : "#15803d",
-            border: `1.5px solid ${playing ? "#fed7aa" : "#bbf7d0"}`,
+            background: playing ? "rgba(234,88,12,0.15)" : "rgba(245,158,11,0.12)",
+            color: playing ? "#fb923c" : "#f59e0b",
+            border: `1.5px solid ${playing ? "rgba(234,88,12,0.4)" : "rgba(245,158,11,0.35)"}`,
           }}>
           {isJoining ? "Joining…" : playing ? "Spectate / Rejoin" : "Join Game →"}
         </button>
