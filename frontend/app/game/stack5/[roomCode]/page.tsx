@@ -948,5 +948,3 @@ function ActionBtn({ children, onClick, disabled, variant = "default" }: {
   );
 }
 
-// Keep MiniCard exported-compatible (used by nothing external but referenced above)
-export { MiniCard };
