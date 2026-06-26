@@ -494,7 +494,11 @@ export default function Stack5Page() {
 
           {/* ── Opponents ── */}
           {opponents.length > 0 && (
-            <div className={`grid gap-2 ${opponents.length === 1 ? "grid-cols-1 max-w-xl mx-auto w-full" : opponents.length === 2 ? "grid-cols-2" : "grid-cols-3"}`}>
+            <div className={`grid gap-2 ${
+              opponents.length === 1 ? "grid-cols-1 max-w-xl mx-auto w-full" :
+              opponents.length === 2 ? "grid-cols-1 sm:grid-cols-2" :
+              "grid-cols-1 sm:grid-cols-3"
+            }`}>
               {opponents.map((opp) => (
                 <OpponentPanel
                   key={opp.id}
@@ -550,7 +554,7 @@ export default function Stack5Page() {
               </div>
 
               {/* My stacks */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                 {me.stacks.map((stack) => {
                   const sel = mode.type === "card_selected" ? me.hand.find((c) => c.id === mode.cardId) : null;
                   const canDrop = !!sel && isValidForStack(stack, sel);
@@ -690,6 +694,26 @@ function DiscardPile({ topCard, count }: { topCard: Stack5Card | null; count: nu
   );
 }
 
+// ─── StackCard ────────────────────────────────────────────────────────────────
+
+function StackCard({ card }: { card: Stack5Card }) {
+  const overlay =
+    card.type === "standard"
+      ? SHAPE_EMOJI[card.shape!]
+      : card.type === "wild" ? "✨"
+      : card.type === "skip" ? "⊘"
+      : card.type === "reverse" ? "↕"
+      : "🗑";
+  return (
+    <div className="relative h-12 w-8 rounded-lg overflow-hidden shadow-md border border-black/20">
+      <img src={cardImageSrc(card)} alt={cardAlt(card)} className="h-full w-full object-cover" draggable={false} />
+      <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/60 py-0.5">
+        <span className="text-[9px] leading-none">{overlay}</span>
+      </div>
+    </div>
+  );
+}
+
 // ─── MyStackSlot ──────────────────────────────────────────────────────────────
 
 function MyStackSlot({ stack, canDrop, isSelectMode, canSecure, onClick, onSecure }: {
@@ -722,13 +746,11 @@ function MyStackSlot({ stack, canDrop, isSelectMode, canSecure, onClick, onSecur
             : <span className="text-[10px] text-gray-700">Empty</span>}
         </div>
       ) : (
-        /* Overlapping pile */
-        <div className="relative flex-1" style={{ minHeight: `${stack.cards.length * 14 + 24}px` }}>
+        /* Overlapping pile — proper card ratio, centered */
+        <div className="relative flex-1 flex justify-center" style={{ minHeight: `${stack.cards.length * 16 + 40}px` }}>
           {stack.cards.map((card, i) => (
-            <div key={i} className="absolute left-0 right-0" style={{ top: `${i * 14}px`, zIndex: i }}>
-              <div className="h-8 w-full rounded-lg overflow-hidden border border-black/20 shadow-sm">
-                <img src={cardImageSrc(card)} alt={cardAlt(card)} className="h-full w-full object-cover" draggable={false} />
-              </div>
+            <div key={i} className="absolute" style={{ top: `${i * 16}px`, zIndex: i }}>
+              <StackCard card={card} />
             </div>
           ))}
         </div>
@@ -805,12 +827,10 @@ function OpponentPanel({ player, isCurrentTurn, stealMode, myMasterCards, onStea
               style={{ minHeight: `${pileH + 20}px` }}
             >
               <p className="text-[7px] text-gray-600 text-center mb-0.5">{stack.cards.length}/5</p>
-              <div className="relative" style={{ height: `${pileH}px` }}>
+              <div className="relative flex justify-center" style={{ height: `${pileH}px` }}>
                 {stack.cards.map((card, i) => (
-                  <div key={i} className="absolute left-0 right-0" style={{ top: `${i * 12}px`, zIndex: i }}>
-                    <div className="h-7 rounded overflow-hidden border border-black/20">
-                      <img src={cardImageSrc(card)} alt="" className="h-full w-full object-cover" draggable={false} />
-                    </div>
+                  <div key={i} className="absolute" style={{ top: `${i * 12}px`, zIndex: i }}>
+                    <StackCard card={card} />
                   </div>
                 ))}
               </div>
