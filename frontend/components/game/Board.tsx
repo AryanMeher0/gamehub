@@ -21,12 +21,12 @@ type Props = {
 };
 
 // Standard Monopoly corner positions (clockwise from GO):
-// GO=0 (bottom-left), Jail=10 (bottom-right), FreePark=20 (top-right), GoJail=30 (top-left)
+// GO=0 (bottom-right), Jail=10 (bottom-left), FreePark=20 (top-left), GoJail=30 (top-right)
 const CORNERS = {
-  topLeft:     30, // Go To Jail
-  topRight:    20, // Free Parking
-  bottomLeft:   0, // GO
-  bottomRight: 10, // Jail / Visiting
+  topLeft:    20, // Free Parking
+  topRight:   30, // Go To Jail
+  bottomLeft: 10, // Jail / Visiting
+  bottomRight: 0, // GO
 } as const;
 
 function getPlayersOnSpace(index: number, players: Record<string, GamePlayer>): GamePlayer[] {
@@ -34,27 +34,27 @@ function getPlayersOnSpace(index: number, players: Record<string, GamePlayer>): 
 }
 
 function getCornerIndex(r: number, c: number): number | null {
-  if (r === 0  && c === 0)  return CORNERS.topLeft;
-  if (r === 0  && c === 10) return CORNERS.topRight;
-  if (r === 10 && c === 0)  return CORNERS.bottomLeft;
-  if (r === 10 && c === 10) return CORNERS.bottomRight;
+  if (r === 0  && c === 0)  return CORNERS.topLeft;    // 20
+  if (r === 0  && c === 10) return CORNERS.topRight;   // 30
+  if (r === 10 && c === 0)  return CORNERS.bottomLeft; // 10
+  if (r === 10 && c === 10) return CORNERS.bottomRight; // 0
   return null;
 }
 
 // Maps grid position → gameplay space index (0–39).
-// Layout clockwise from GO at bottom-left:
-//   Bottom row   (r=10, c=1→9):  indices  1– 9  (GO=0 at c=0, Jail=10 at c=10)
-//   Right column (c=10, r=9→1):  indices 11–19  (Jail=10 at r=10, FreePark=20 at r=0)
-//   Top row      (r=0,  c=9→1):  indices 21–29  (FreePark=20 at c=10, GoJail=30 at c=0)
-//   Left column  (c=0,  r=1→9):  indices 31–39  (GoJail=30 at r=0, GO=0 at r=10)
+// Clockwise from GO at bottom-right:
+//   Bottom row   (r=10, c=9→1):  indices  1– 9  (GO=0 at c=10, Jail=10 at c=0)
+//   Left column  (c=0,  r=9→1):  indices 11–19  (Jail=10 at r=10, FreePark=20 at r=0)
+//   Top row      (r=0,  c=1→9):  indices 21–29  (FreePark=20 at c=0, GoJail=30 at c=10)
+//   Right column (c=10, r=1→9):  indices 31–39  (GoJail=30 at r=0, GO=0 at r=10)
 function getSpaceIndex(r: number, c: number): number | null {
   const corner = getCornerIndex(r, c);
   if (corner !== null) return corner;
 
-  if (r === 10 && c >= 1 && c <= 9) return c;             // 1→1 … 9→9
-  if (c === 10 && r >= 1 && r <= 9) return 20 - r;        // 9→11 … 1→19
-  if (r === 0  && c >= 1 && c <= 9) return 30 - c;        // 9→21 … 1→29
-  if (c === 0  && r >= 1 && r <= 9) return r + 30;         // 1→31 … 9→39
+  if (r === 10 && c >= 1 && c <= 9) return 10 - c;   // c=9→1 … c=1→9
+  if (c === 0  && r >= 1 && r <= 9) return 20 - r;   // r=9→11 … r=1→19
+  if (r === 0  && c >= 1 && c <= 9) return 20 + c;   // c=1→21 … c=9→29
+  if (c === 10 && r >= 1 && r <= 9) return 30 + r;   // r=1→31 … r=9→39
 
   return null;
 }
@@ -114,7 +114,7 @@ function TileContent({
   };
 
   const cornerIcon: Record<string, string> = {
-    go:           "→",
+    go:           "←",
     visiting:     "🔒",
     free_parking: "🅿",
     go_to_jail:   "👮",
@@ -131,15 +131,15 @@ function TileContent({
       {isCorner ? (
         // Corner tile layout
         <div className="w-full h-full flex flex-col items-center justify-center gap-[2px]">
-          <span className="text-[18px] leading-none">{cornerIcon[space.type] ?? ""}</span>
+          <span className="text-[20px] leading-none">{cornerIcon[space.type] ?? ""}</span>
           <p
-            className="text-gray-100 font-black text-center leading-[1.1] whitespace-pre-line"
-            style={{ fontSize: "clamp(6px, 1.4vw, 13px)" }}
+            className="text-white font-black text-center leading-[1.15] whitespace-pre-line tracking-wide"
+            style={{ fontSize: "clamp(7px, 1.6vw, 14px)" }}
           >
             {cornerLabel[space.type] ?? space.name}
           </p>
           {space.type === "go" && (
-            <p className="text-green-300 font-bold text-center" style={{ fontSize: "clamp(5px, 0.9vw, 9px)" }}>
+            <p className="text-amber-300 font-bold text-center tracking-tight" style={{ fontSize: "clamp(5px, 1vw, 10px)" }}>
               Collect $200
             </p>
           )}
@@ -161,14 +161,15 @@ function TileContent({
         <>
           {/* Name */}
           <p
-            className="text-gray-100 font-bold text-center w-full overflow-hidden"
+            className="text-white font-black text-center w-full overflow-hidden tracking-tight"
             style={{
-              fontSize: "clamp(5px, 0.9vw, 8px)",
-              lineHeight: 1.15,
+              fontSize: "clamp(5.5px, 1vw, 9px)",
+              lineHeight: 1.2,
               display: "-webkit-box",
               WebkitLineClamp: isHorizontal ? 2 : 3,
               WebkitBoxOrient: "vertical",
               overflow: "hidden",
+              textShadow: "0 1px 2px rgba(0,0,0,0.8)",
             }}
             title={space.name}
           >
@@ -212,17 +213,17 @@ function TileContent({
           {/* Price / rent / tax */}
           <div className="shrink-0 text-center">
             {space.price !== undefined && !ownership && (
-              <p className="text-gray-300 font-bold" style={{ fontSize: "clamp(5px, 0.75vw, 7px)" }}>
+              <p className="text-amber-200 font-black" style={{ fontSize: "clamp(5px, 0.8vw, 8px)" }}>
                 ${space.price}
               </p>
             )}
             {space.tax !== undefined && (
-              <p className="text-red-300 font-bold" style={{ fontSize: "clamp(5px, 0.75vw, 7px)" }}>
+              <p className="text-red-300 font-black" style={{ fontSize: "clamp(5px, 0.8vw, 8px)" }}>
                 -${space.tax}
               </p>
             )}
             {ownership && (
-              <p className="text-gray-300 font-bold" style={{ fontSize: "clamp(5px, 0.75vw, 7px)" }}>
+              <p className="text-cyan-200 font-black" style={{ fontSize: "clamp(5px, 0.8vw, 8px)" }}>
                 R:${ownership.rent}
               </p>
             )}
@@ -288,19 +289,19 @@ export default function Board({ players, properties, onSpaceClick }: Props) {
     >
       {/* Board center — spans the full interior behind the grid */}
       <div
-        className="absolute pointer-events-none z-0 flex items-center justify-center bg-green-950 border border-gray-700"
-        style={{ inset: CENTER_INSET }}
+        className="absolute pointer-events-none z-0 flex items-center justify-center border border-gray-700/50"
+        style={{ inset: CENTER_INSET, background: "radial-gradient(ellipse at 50% 40%, #1a2040 0%, #0c1228 100%)" }}
       >
         <div className="text-center px-2">
           <p
-            className="font-black tracking-widest text-amber-400 uppercase"
-            style={{ fontSize: "clamp(8px, 2.5vw, 32px)" }}
+            className="font-black tracking-[0.3em] text-amber-400 uppercase"
+            style={{ fontSize: "clamp(10px, 3vw, 40px)", textShadow: "0 0 20px rgba(245,158,11,0.4)" }}
           >
             India
           </p>
           <p
-            className="font-black tracking-[0.25em] text-amber-300/70 uppercase"
-            style={{ fontSize: "clamp(5px, 1.2vw, 16px)" }}
+            className="font-black tracking-[0.2em] text-amber-300/60 uppercase"
+            style={{ fontSize: "clamp(6px, 1.4vw, 18px)" }}
           >
             Monopoly
           </p>

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { getSocket } from "@/lib/socket";
+import { playSound } from "@/lib/sounds";
 import { GameState, TradeOffer } from "@/types/game";
 import Board from "@/components/game/Board";
 import PlayerPanel from "@/components/game/PlayerPanel";
@@ -33,6 +34,7 @@ export default function GamePage() {
   const [showTradeModal, setShowTradeModal] = useState(false);
   const [incomingTrade, setIncomingTrade] = useState<TradeOffer | null>(null);
   const [selectedSpace, setSelectedSpace] = useState<number | null>(null);
+  const prevStateRef = useRef<GameState | null>(null);
 
   useEffect(() => {
     const socket = getSocket();
@@ -51,11 +53,38 @@ export default function GamePage() {
     }
 
     function onStateUpdated(s: GameState) {
+      const prev = prevStateRef.current;
+      prevStateRef.current = s;
       setState(s);
       setError("");
       setDisconnected(false);
-      // Persist to localStorage so the last-known state survives a page refresh or server restart
       try { localStorage.setItem(LOCAL_SAVE_KEY, JSON.stringify(s)); } catch { /* quota exceeded */ }
+
+      if (prev) {
+        // Turn changed
+        if (prev.turnOrder[prev.currentTurnIndex] !== s.turnOrder[s.currentTurnIndex]) {
+          playSound("turn");
+        }
+        // Phase changed
+        if (prev.phase !== s.phase) {
+          if (s.phase === "card")    playSound("chance");
+          if (s.phase === "buying")  playSound("buy");
+          if (s.phase === "auction") playSound("chance");
+        }
+        // Per-player events
+        Object.values(s.players).forEach((player) => {
+          const p = prev.players[player.id];
+          if (!p) return;
+          if (!p.inJail  && player.inJail)   playSound("jail");
+          if (!p.bankrupt && player.bankrupt) playSound("bankrupt");
+          // Passed GO: wrapped around the board
+          if (p.position > 30 && player.position < 10 && !player.inJail) playSound("passgo");
+          // Cash decreased while not buying (paying tax or rent)
+          if (player.cash < p.cash) {
+            if (s.phase === "rolling" || prev.phase === "card") playSound("tax");
+          }
+        });
+      }
     }
 
     function onError(data: { message: string }) {
@@ -97,14 +126,14 @@ export default function GamePage() {
     getSocket().emit(event, { roomCode, ...payload });
   }
 
-  function handleRoll()              { emit("game:roll"); }
+  function handleRoll()              { playSound("roll"); emit("game:roll"); }
   function handleEndTurn()           { emit("game:endTurn"); }
   function handleBuy()               { emit("game:buyProperty"); }
   function handleSkip()              { emit("game:skipProperty"); }
   function handleResolveCard()       { emit("game:resolveCard"); }
-  function handlePayJailFine()       { emit("game:payJailFine"); }
+  function handlePayJailFine()       { playSound("tax"); emit("game:payJailFine"); }
   function handleUseGojf()           { emit("game:useGojf"); }
-  function handleBuyBuilding(i: number)  { emit("game:buyBuilding",  { spaceIndex: i }); }
+  function handleBuyBuilding(i: number)  { playSound("build"); emit("game:buyBuilding",  { spaceIndex: i }); }
   function handleSellBuilding(i: number) { emit("game:sellBuilding", { spaceIndex: i }); }
   function handleMortgage(i: number)     { emit("game:mortgage",     { spaceIndex: i }); }
   function handleUnmortgage(i: number)   { emit("game:unmortgage",   { spaceIndex: i }); }

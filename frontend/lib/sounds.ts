@@ -11,7 +11,17 @@ export type SoundType =
   | "turn"      // turn changes to new player
   | "shuffle"   // deck shuffled
   | "error"     // invalid action
-  | "wild";     // wild card played
+  | "wild"      // wild card played
+  // ── Monopoly ──────────────────────
+  | "roll"      // dice rolling
+  | "buy"       // buying a property
+  | "rent"      // paying rent to another player
+  | "passgo"    // passing GO and collecting $200
+  | "jail"      // sent to jail
+  | "tax"       // paying a tax
+  | "chance"    // drawing a chance / community chest card
+  | "bankrupt"  // a player goes bankrupt
+  | "build";    // building a house / hotel
 
 let _ctx: AudioContext | null = null;
 
@@ -164,6 +174,74 @@ export function playSound(type: SoundType): void {
         tone(ac, f, 0.28, "sine", 0.20, i * 0.065);
       });
       noise(ac, 0.35, 3500, 0.8, 0.10);
+      break;
+
+    // ── Monopoly sounds ──────────────────────────────────────────────────────
+
+    // Dice rattling — rapid noise bursts at low frequency
+    case "roll":
+      for (let i = 0; i < 6; i++) {
+        noise(ac, 0.06, 400 + i * 60, 3, 0.20, i * 0.07);
+      }
+      noise(ac, 0.12, 300, 5, 0.28, 0.42);
+      break;
+
+    // Satisfying coin-register ding — property purchase
+    case "buy":
+      tone(ac, 880, 0.12, "sine", 0.18);
+      tone(ac, 1100, 0.22, "sine", 0.22, 0.08);
+      tone(ac, 1320, 0.40, "sine", 0.25, 0.18);
+      break;
+
+    // Coin clinking — paying rent
+    case "rent":
+      [660, 550, 440].forEach((f, i) => {
+        tone(ac, f, 0.18, "sine", 0.20, i * 0.09);
+      });
+      break;
+
+    // Cheerful ascending fanfare — passing GO
+    case "passgo":
+      [523, 659, 784, 1047].forEach((f, i) => {
+        tone(ac, f, 0.25, "sine", 0.22, i * 0.10);
+      });
+      tone(ac, 1047, 0.50, "sine", 0.28, 0.42);
+      break;
+
+    // Heavy door-slam + siren-like sweep — going to jail
+    case "jail":
+      noise(ac, 0.20, 200, 6, 0.35);
+      sweep(ac, 900, 400, 0.35, "sawtooth", 0.22, 0.05);
+      sweep(ac, 900, 400, 0.35, "sawtooth", 0.16, 0.25);
+      break;
+
+    // Low descending tones — paying tax (painful)
+    case "tax":
+      [330, 262, 220].forEach((f, i) => {
+        tone(ac, f, 0.22, "triangle", 0.22, i * 0.12);
+      });
+      break;
+
+    // Paper-shuffle whoosh — drawing a card
+    case "chance":
+      sweep(ac, 1200, 600, 0.18, "sawtooth", 0.15);
+      noise(ac, 0.14, 2000, 1.5, 0.18, 0.06);
+      tone(ac, 740, 0.25, "sine", 0.20, 0.14);
+      break;
+
+    // Sad descending arpeggio — bankruptcy
+    case "bankrupt":
+      [392, 330, 294, 220, 165].forEach((f, i) => {
+        tone(ac, f, 0.28, "triangle", 0.20, i * 0.13);
+      });
+      noise(ac, 0.25, 150, 4, 0.18, 0.60);
+      break;
+
+    // Quick upward tap — placing a house/hotel
+    case "build":
+      noise(ac, 0.08, 800, 4, 0.22);
+      tone(ac, 440, 0.20, "sine", 0.18, 0.04);
+      tone(ac, 660, 0.30, "sine", 0.20, 0.12);
       break;
   }
 }
