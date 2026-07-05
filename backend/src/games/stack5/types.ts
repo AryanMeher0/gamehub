@@ -1,6 +1,6 @@
 export type CardColor = "green" | "yellow" | "pink" | "blue";
 export type CardShape = "flower" | "lightning" | "star" | "drop";
-export type CardType = "standard" | "wild" | "skip" | "reverse" | "reset_hand";
+export type CardType = "standard" | "wild" | "skip" | "extra_turn" | "reset_hand";
 
 export interface Stack5Card {
   id: string;

@@ -6,7 +6,7 @@ import { getSocket } from "@/lib/socket";
 import { Stack5State, Stack5Player } from "@/types/stack5";
 
 const SPECIAL_FILENAMES: Record<string, string> = {
-  wild: "wild", skip: "skip", reverse: "reverse", reset_hand: "resethand",
+  wild: "wild", skip: "skip", extra_turn: "hallpass", reset_hand: "resethand",
 };
 
 function cardImageSrc(card: { type: string; color?: string | null; shape?: string | null }): string {

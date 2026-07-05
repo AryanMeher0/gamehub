@@ -26,9 +26,9 @@ export function buildDeck(deckIndex = 0): Stack5Card[] {
     cards.push({ id: `${p}skip_${i}`, type: "skip", color: null, shape: null });
   }
 
-  // 4 reverse cards
+  // 4 extra turn cards
   for (let i = 0; i < 4; i++) {
-    cards.push({ id: `${p}reverse_${i}`, type: "reverse", color: null, shape: null });
+    cards.push({ id: `${p}extra_turn_${i}`, type: "extra_turn", color: null, shape: null });
   }
 
   // 2 reset hand cards

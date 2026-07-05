@@ -268,19 +268,13 @@ function playCard(roomCode: string, playerId: string, input: PlayCardInput): { s
     return { state };
   }
 
-  // ── Reverse ──
-  if (card.type === "reverse") {
+  // ── Extra Turn ──
+  if (card.type === "extra_turn") {
     cp.hand.splice(cardIdx, 1);
     state.discardPile.push(card);
-    if (state.turnOrder.length === 2) {
-      const otherId = state.turnOrder.find((id) => id !== playerId)!;
-      state.players[otherId].skippedNextTurn = true;
-      state.log.push(`${cp.name} played Reverse — ${state.players[otherId].name}'s turn is skipped!`);
-    } else {
-      state.direction = (state.direction * -1) as 1 | -1;
-      state.log.push(`${cp.name} played Reverse — turn order reversed!`);
-    }
-    spendAction(state);
+    state.actionsRemaining -= 1;
+    state.actionsRemaining += 2;
+    state.log.push(`${cp.name} played Extra Turn — gained 2 more actions! (${state.actionsRemaining} left)`);
     return { state };
   }
 

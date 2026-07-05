@@ -39,7 +39,7 @@ const COLORS: CardColor[] = ["green", "yellow", "pink", "blue"];
 const SHAPES: CardShape[] = ["flower", "lightning", "star", "drop"];
 
 const SPECIAL_FILENAMES: Record<string, string> = {
-  wild: "wild", skip: "skip", reverse: "reverse", reset_hand: "resethand",
+  wild: "wild", skip: "skip", extra_turn: "hallpass", reset_hand: "resethand",
 };
 
 function cardImageSrc(card: Stack5Card): string {
@@ -242,7 +242,7 @@ export default function Stack5Page() {
     const card = me.hand.find((c) => c.id === cardId);
     if (!card) return;
     if (mode.type === "card_selected" && mode.cardId === cardId) { setMode({ type: "idle" }); return; }
-    if (card.type === "reverse") { emit("stack5:playCard", { cardId }); playSound("play"); setMode({ type: "idle" }); return; }
+    if (card.type === "extra_turn") { emit("stack5:playCard", { cardId }); playSound("play"); setMode({ type: "idle" }); return; }
     if (card.type === "skip" || card.type === "reset_hand") { setMode({ type: "special_selected", cardId, cardType: card.type }); return; }
     setMode({ type: "card_selected", cardId });
   }
@@ -261,7 +261,7 @@ export default function Stack5Page() {
     const card = me.hand.find((c) => c.id === cardId);
     if (!card) return;
     if (!isValidForStack(me.stacks[slotIndex], card)) { showError("Card doesn't match this stack's pattern"); return; }
-    if (card.type === "reverse") { emit("stack5:playCard", { cardId }); playSound("play"); return; }
+    if (card.type === "extra_turn") { emit("stack5:playCard", { cardId }); playSound("play"); return; }
     if (card.type === "skip" || card.type === "reset_hand") { setMode({ type: "special_selected", cardId, cardType: card.type }); return; }
     if (card.type === "wild") { playSound("wild"); setMode({ type: "wild_pending", cardId, slotIndex }); }
     else { emit("stack5:playCard", { cardId, slotIndex }); playSound("play"); setMode({ type: "idle" }); }
@@ -811,10 +811,11 @@ function FanCard({ card, angle, rise, offsetX, selected, isDragging, clickable, 
 // ─── ActionsBar ───────────────────────────────────────────────────────────────
 
 function ActionsBar({ remaining }: { remaining: number }) {
+  const slots = Math.max(remaining, 2);
   return (
     <div className="flex items-center gap-1.5">
       <span className="text-[9px] font-bold uppercase tracking-widest text-slate-700 mr-0.5">Actions</span>
-      {[0, 1].map((i) => (
+      {Array.from({ length: slots }, (_, i) => (
         <div key={i} className={`h-3 w-3 rounded-full transition-all duration-300 ${i < remaining ? "bg-green-400 shadow-md shadow-amber-500/60 scale-110" : "bg-black/30 border border-slate-800"}`} />
       ))}
     </div>
