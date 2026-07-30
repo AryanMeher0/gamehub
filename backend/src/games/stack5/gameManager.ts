@@ -490,6 +490,47 @@ function reassignPlayerId(roomCode: string, oldId: string, newId: string): Stack
   return state;
 }
 
+// ─── handlePlayerDisconnect (permanent removal after reconnect window expires) ─
+
+function handlePlayerDisconnect(roomCode: string, playerId: string): Stack5State | null {
+  const state = games[roomCode];
+  if (!state) return null;
+  const player = state.players[playerId];
+  if (!player) return state;
+
+  state.log.push(`${player.name} left the game.`);
+
+  state.discardPile.push(...player.hand);
+  for (const stack of player.stacks) state.discardPile.push(...stack.cards);
+
+  const wasCurrent = state.turnOrder[state.currentTurnIndex] === playerId;
+  const removedIndex = state.turnOrder.indexOf(playerId);
+
+  delete state.players[playerId];
+  state.turnOrder = state.turnOrder.filter((id) => id !== playerId);
+
+  if (state.turnOrder.length === 0) {
+    delete games[roomCode];
+    return null;
+  }
+
+  if (removedIndex !== -1 && removedIndex < state.currentTurnIndex) {
+    state.currentTurnIndex -= 1;
+  }
+  if (state.currentTurnIndex >= state.turnOrder.length) {
+    state.currentTurnIndex = 0;
+  }
+
+  if (wasCurrent) {
+    state.actionsRemaining = 2;
+    state.turnStartedAt = Date.now();
+    const cp = state.players[state.turnOrder[state.currentTurnIndex]];
+    if (cp) state.log.push(`${cp.name}'s turn.`);
+  }
+
+  return state;
+}
+
 // ─── Operator actions ─────────────────────────────────────────────────────────
 
 function undoAction(roomCode: string): { state: Stack5State; error?: string } {
@@ -586,7 +627,7 @@ function deleteGame(roomCode: string): void {
 
 export {
   createGame, drawCard, playCard, tradeForMaster, secure, steal,
-  endTurn, forceAdvanceTurn, reassignPlayerId, getGame, deleteGame,
+  endTurn, forceAdvanceTurn, reassignPlayerId, handlePlayerDisconnect, getGame, deleteGame,
   saveHistory, undoAction, operatorForceNextTurn, operatorGiveMC,
   operatorClearStack, operatorEndGame, operatorShuffleDeck, operatorTransferDiscard,
 };

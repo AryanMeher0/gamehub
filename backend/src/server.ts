@@ -19,7 +19,7 @@ import {
   createGame as s5Create, drawCard as s5Draw, playCard as s5Play,
   tradeForMaster as s5Trade, secure as s5Secure, steal as s5Steal,
   endTurn as s5EndTurn, forceAdvanceTurn as s5ForceAdvance,
-  reassignPlayerId as s5Reassign, getGame as s5Get,
+  reassignPlayerId as s5Reassign, handlePlayerDisconnect as s5HandleDisconnect, getGame as s5Get,
   saveHistory as s5SaveHistory, undoAction as s5Undo,
   operatorForceNextTurn as s5OpForceNext, operatorGiveMC as s5OpGiveMC,
   operatorClearStack as s5OpClearStack, operatorEndGame as s5OpEndGame,
@@ -97,30 +97,39 @@ io.on("connection", (socket) => {
   // ── RECONNECT ─────────────────────────────────────────────────────────────
   // Client sends stored oldSocketId immediately after connecting
   socket.on("game:reconnect", ({ roomCode, oldSocketId }: { roomCode: string; oldSocketId: string }) => {
+    const rc = roomCode.toUpperCase();
+    // Prefer the tracked session (also cancels the permanent-removal timer), but
+    // fall back to checking whether the old player slot is still live in the room.
+    // A flaky connection can reconnect faster than the server notices the drop
+    // (socket.io only detects a dead transport after a ping-timeout), so the new
+    // socket can arrive here before registerDisconnect() ever created a session —
+    // without this fallback that race permanently strands the player as a non-participant.
     const session = claimReconnectById(socket.id, oldSocketId);
-    if (!session) {
+    const stillInRoom = !!getRoom(rc)?.players[oldSocketId];
+    if (!session && !stillInRoom) {
       socket.emit("game:reconnectFailed", { message: "Reconnect window expired or session not found" });
       return;
     }
-    const roomResult = reconnectPlayer(roomCode, socket.id, oldSocketId);
+    clearSession(oldSocketId);
+    const roomResult = reconnectPlayer(rc, socket.id, oldSocketId);
     if (roomResult) {
-      socket.join(roomCode);
-      io.to(roomCode).emit("roomUpdated", roomResult.room);
+      socket.join(rc);
+      io.to(rc).emit("roomUpdated", roomResult.room);
     }
-    const room = getRoom(roomCode);
+    const room = getRoom(rc);
     if (room?.selectedGameId === "stack5") {
-      const s5state = s5Reassign(roomCode, oldSocketId, socket.id);
-      if (s5state) io.to(roomCode).emit("stack5:stateUpdated", s5state);
+      const s5state = s5Reassign(rc, oldSocketId, socket.id);
+      if (s5state) io.to(rc).emit("stack5:stateUpdated", s5state);
     } else {
-      const state = reassignPlayerId(roomCode, oldSocketId, socket.id);
+      const state = reassignPlayerId(rc, oldSocketId, socket.id);
       if (state) {
         state.log.push(`${state.players[socket.id]?.name ?? "A player"} reconnected.`);
-        persistGame(roomCode);
-        io.to(roomCode).emit("game:stateUpdated", state);
+        persistGame(rc);
+        io.to(rc).emit("game:stateUpdated", state);
       }
     }
-    socket.emit("game:reconnected", { roomCode });
-    console.log(`[reconnect] ${oldSocketId} → ${socket.id} in room ${roomCode}`);
+    socket.emit("game:reconnected", { roomCode: rc });
+    console.log(`[reconnect] ${oldSocketId} → ${socket.id} in room ${rc}`);
   });
 
   // ── RESUME SAVED GAME ─────────────────────────────────────────────────────
@@ -768,11 +777,18 @@ io.on("connection", (socket) => {
       // Register 5-min reconnect window; on expiry apply real removal
       registerDisconnect(socket.id, roomCode, gameId, (oldId, rc) => {
         console.log(`[reconnect] Window expired for ${oldId} in room ${rc}`);
-        // Permanent removal
-        const state = handlePlayerDisconnect(rc, oldId);
-        if (state) {
-          persistGame(rc);
-          io.to(rc).emit("game:stateUpdated", state);
+        if (gameId === "stack5") {
+          // Permanent removal — without this the disconnected player's turn slot
+          // stayed in turnOrder forever, softlocking the game on their turn.
+          const s5state = s5HandleDisconnect(rc, oldId);
+          if (s5state) io.to(rc).emit("stack5:stateUpdated", s5state);
+        } else {
+          // Permanent removal
+          const state = handlePlayerDisconnect(rc, oldId);
+          if (state) {
+            persistGame(rc);
+            io.to(rc).emit("game:stateUpdated", state);
+          }
         }
         const r = getRoom(rc);
         if (r) {
