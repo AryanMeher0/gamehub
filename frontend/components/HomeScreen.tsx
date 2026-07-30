@@ -157,10 +157,10 @@ export default function HomeScreen() {
   const openRooms = rooms.filter((r) => !r.gameId); // created but game not yet selected
 
   return (
-    <main className="min-h-screen" style={{ background: "radial-gradient(ellipse at 50% 30%, #1a2040 0%, #0c1228 55%, #060810 100%)" }}>
+    <main className="min-h-screen" style={{ background: "radial-gradient(ellipse at 50% 30%, #1a3f2e 0%, #0c2818 55%, #06120c 100%)" }}>
 
       {/* ── Header ── */}
-      <header style={{ background: "linear-gradient(135deg, #0f172a 0%, #1e293b 100%)" }}
+      <header style={{ background: "linear-gradient(135deg, #0f2a1a 0%, #1e3b2a 100%)" }}
         className="px-6 py-5 shadow-xl">
         <div className="max-w-5xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
